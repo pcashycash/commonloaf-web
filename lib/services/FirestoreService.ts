@@ -19,8 +19,11 @@ import { Location, locationFromFirestore } from "../models/Location";
 
 export class FirestoreService {
   async fetchUpcomingGatherings(): Promise<Gathering[]> {
+    if (!db) {
+      throw new Error("Firebase is not initialized. Please check your environment variables.");
+    }
     const now = Timestamp.now();
-    const currentUserId = auth.currentUser?.uid;
+    const currentUserId = auth?.currentUser?.uid;
 
     // Query 1: Public gatherings
     const publicQuery = query(
@@ -90,6 +93,9 @@ export class FirestoreService {
   }
 
   async fetchPastGatheringsForUser(userId: string): Promise<Gathering[]> {
+    if (!db) {
+      throw new Error("Firebase is not initialized. Please check your environment variables.");
+    }
     const now = Timestamp.now();
     
     try {
@@ -146,6 +152,9 @@ export class FirestoreService {
   }
 
   async fetchGathering(id: string): Promise<Gathering | null> {
+    if (!db) {
+      throw new Error("Firebase is not initialized. Please check your environment variables.");
+    }
     const document = await getDoc(doc(db, "gatherings", id));
     if (!document.exists()) {
       return null;
@@ -155,6 +164,9 @@ export class FirestoreService {
   }
 
   async registerForGathering(gatheringId: string, userId: string): Promise<void> {
+    if (!db) {
+      throw new Error("Firebase is not initialized. Please check your environment variables.");
+    }
     const gatheringRef = doc(db, "gatherings", gatheringId);
     
     await runTransaction(db, async (transaction) => {
@@ -180,6 +192,9 @@ export class FirestoreService {
   }
 
   async unregisterFromGathering(gatheringId: string, userId: string): Promise<void> {
+    if (!db) {
+      throw new Error("Firebase is not initialized. Please check your environment variables.");
+    }
     const gatheringRef = doc(db, "gatherings", gatheringId);
     const gatheringDoc = await getDoc(gatheringRef);
     
@@ -195,6 +210,9 @@ export class FirestoreService {
   }
 
   async fetchUsers(ids: string[]): Promise<User[]> {
+    if (!db) {
+      throw new Error("Firebase is not initialized. Please check your environment variables.");
+    }
     if (ids.length === 0) return [];
     
     // Fetch documents directly by ID
@@ -216,6 +234,9 @@ export class FirestoreService {
   }
 
   async fetchRecipes(ids: string[]): Promise<Recipe[]> {
+    if (!db) {
+      throw new Error("Firebase is not initialized. Please check your environment variables.");
+    }
     if (ids.length === 0) return [];
     
     // Fetch documents directly by ID
@@ -237,6 +258,9 @@ export class FirestoreService {
   }
 
   async fetchLocations(ids: string[]): Promise<Location[]> {
+    if (!db) {
+      throw new Error("Firebase is not initialized. Please check your environment variables.");
+    }
     if (ids.length === 0) return [];
     
     // Fetch documents directly by ID

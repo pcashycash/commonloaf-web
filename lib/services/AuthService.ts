@@ -20,7 +20,7 @@ export class AuthService {
 
   constructor() {
     // Set up auth state listener
-    if (typeof window !== "undefined") {
+    if (typeof window !== "undefined" && auth) {
       onAuthStateChanged(auth, (user) => {
         const isAuthenticated = !!user;
         this.notifyAuthStateListeners(isAuthenticated);
@@ -29,10 +29,12 @@ export class AuthService {
   }
 
   get currentUserId(): string | null {
+    if (!auth) return null;
     return auth.currentUser?.uid || null;
   }
 
   get isAuthenticated(): boolean {
+    if (!auth) return false;
     return !!auth.currentUser;
   }
 
@@ -60,6 +62,7 @@ export class AuthService {
 
   // Manually trigger auth state check (useful after sign-in to ensure UI updates)
   async checkAuthState(): Promise<void> {
+    if (!auth) return;
     console.log("🔵 [AuthService v2.1] checkAuthState called");
     console.log("🔵 Current auth.currentUser:", auth.currentUser?.uid);
     // Wait a moment for Firebase to update the auth state
@@ -74,6 +77,9 @@ export class AuthService {
   }
 
   async signInWithEmailAndPassword(email: string, password: string): Promise<void> {
+    if (!auth) {
+      throw new Error("Firebase is not initialized. Please check your environment variables.");
+    }
     try {
       const result = await signInWithEmailAndPassword(auth, email, password);
       
@@ -96,6 +102,9 @@ export class AuthService {
 
   // Keep old method for backward compatibility, but redirect to email-based
   async signInWithPhoneAndPassword(phoneNumber: string, password: string): Promise<void> {
+    if (!db) {
+      throw new Error("Firebase is not initialized. Please check your environment variables.");
+    }
     // For backward compatibility, try to find user by phone and use their email
     const normalizedInputDigits = normalizePhoneNumberToDigits(phoneNumber);
     
@@ -134,6 +143,9 @@ export class AuthService {
     lastName: string,
     phoneNumber: string
   ): Promise<void> {
+    if (!auth || !db) {
+      throw new Error("Firebase is not initialized. Please check your environment variables.");
+    }
     // Check if email already exists
     const emailQuery = query(
       collection(db, "users"),
@@ -202,6 +214,9 @@ export class AuthService {
   }
 
   async resetPasswordWithEmail(email: string): Promise<void> {
+    if (!auth || !db) {
+      throw new Error("Firebase is not initialized. Please check your environment variables.");
+    }
     // Look up user by email in Firestore
     const emailQuery = query(
       collection(db, "users"),
@@ -258,10 +273,16 @@ export class AuthService {
   }
 
   async signOut(): Promise<void> {
+    if (!auth) {
+      throw new Error("Firebase is not initialized. Please check your environment variables.");
+    }
     await firebaseSignOut(auth);
   }
 
   async deleteAccount(password: string): Promise<void> {
+    if (!auth || !db) {
+      throw new Error("Firebase is not initialized. Please check your environment variables.");
+    }
     const user = auth.currentUser;
     if (!user || !user.email) {
       throw new Error("No user is currently signed in");

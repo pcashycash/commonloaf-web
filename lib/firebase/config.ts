@@ -16,29 +16,61 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-let app: FirebaseApp;
-let auth: Auth;
-let db: Firestore;
+// Validate required environment variables
+const requiredEnvVars = [
+  'NEXT_PUBLIC_FIREBASE_API_KEY',
+  'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN',
+  'NEXT_PUBLIC_FIREBASE_PROJECT_ID',
+  'NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET',
+  'NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID',
+  'NEXT_PUBLIC_FIREBASE_APP_ID',
+];
+
+if (typeof window !== "undefined") {
+  const missingVars = requiredEnvVars.filter(
+    (varName) => !process.env[varName]
+  );
+  
+  if (missingVars.length > 0) {
+    console.error(
+      'Missing required Firebase environment variables:',
+      missingVars.join(', ')
+    );
+    throw new Error(
+      `Missing required Firebase environment variables: ${missingVars.join(', ')}. ` +
+      'Please check your Vercel project settings.'
+    );
+  }
+}
+
+let app: FirebaseApp | undefined;
+let auth: Auth | undefined;
+let db: Firestore | undefined;
 let analytics: Analytics | null = null;
 
 if (typeof window !== "undefined") {
-  if (getApps().length === 0) {
-    app = initializeApp(firebaseConfig);
-    
-    // Initialize Analytics only in browser and if measurementId is provided
-    if (process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID) {
-      try {
-        analytics = getAnalytics(app);
-      } catch (error) {
-        // Analytics might fail in development or if not properly configured
-        console.warn("Firebase Analytics initialization failed:", error);
+  try {
+    if (getApps().length === 0) {
+      app = initializeApp(firebaseConfig);
+      
+      // Initialize Analytics only in browser and if measurementId is provided
+      if (process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID) {
+        try {
+          analytics = getAnalytics(app);
+        } catch (error) {
+          // Analytics might fail in development or if not properly configured
+          console.warn("Firebase Analytics initialization failed:", error);
+        }
       }
+    } else {
+      app = getApps()[0];
     }
-  } else {
-    app = getApps()[0];
+    auth = getAuth(app);
+    db = getFirestore(app);
+  } catch (error) {
+    console.error("Firebase initialization failed:", error);
+    throw error;
   }
-  auth = getAuth(app);
-  db = getFirestore(app);
 }
 
 export { app, auth, db, analytics };
