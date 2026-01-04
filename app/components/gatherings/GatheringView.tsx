@@ -245,7 +245,7 @@ function GatheringCard({
     return (
       <div
         onClick={onClick}
-        className="flex-shrink-0 w-[200px] rounded-xl overflow-hidden bg-black shadow-md cursor-pointer"
+        className="flex-shrink-0 w-[200px] rounded-xl overflow-hidden bg-slate-900 shadow-md cursor-pointer"
       >
         {gathering.imageURL && (
           <div className="relative h-32">
@@ -261,7 +261,7 @@ function GatheringCard({
             </div>
           </div>
         )}
-        <div className="p-3 bg-black bg-opacity-60">
+        <div className="p-3 bg-slate-900 bg-opacity-60">
           <h3 className="text-sm font-bold text-white mb-1 line-clamp-1">{gathering.title}</h3>
           {location && displayNeighborhood(location) && (
             <p className="text-xs text-gray-300 flex items-center gap-1">
@@ -277,7 +277,7 @@ function GatheringCard({
   return (
     <div
       onClick={onClick}
-      className="rounded-xl overflow-hidden bg-black shadow-md cursor-pointer"
+      className="rounded-xl overflow-hidden bg-slate-900 shadow-md cursor-pointer"
     >
       {gathering.imageURL && (
         <div className="relative w-full aspect-video">
@@ -286,16 +286,18 @@ function GatheringCard({
             alt={gathering.title}
             className="w-full h-full object-cover"
           />
-          <div className="absolute top-4 left-4 flex items-center gap-2">
+          <div className="absolute top-4 left-4">
             <div className="px-3 py-1 bg-white bg-opacity-90 rounded-full text-xs font-medium text-black">
               {dayLabel(gathering.start)} • {timeLabel(gathering.start)}
             </div>
-            {isRegistered && (
+          </div>
+          {isRegistered && (
+            <div className="absolute top-4 right-4">
               <div className="px-3 py-1 bg-green-500 bg-opacity-80 rounded-full text-xs font-medium text-white">
                 Going
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       )}
       <div className="p-4 space-y-3">

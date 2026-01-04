@@ -186,7 +186,7 @@ export default function GatheringDetailView({
           {/* Details Section */}
           <div>
             <h2 className="text-lg font-semibold text-[var(--color-text)] mb-4">Details</h2>
-            <div className="bg-black rounded-xl p-4 space-y-3 shadow-md">
+            <div className="bg-slate-900 rounded-xl p-4 space-y-3 shadow-md">
               <InfoRow icon="📅" value={formatDate(gathering.start)} />
               <div className="h-px w-full bg-gray-600"></div>
               <InfoRow
@@ -238,7 +238,7 @@ export default function GatheringDetailView({
               <h2 className="text-lg font-semibold text-[var(--color-text)] mb-4">Menu</h2>
               <div className="space-y-4">
                 {menuItems.map((menuItem) => (
-                  <div key={menuItem.id} className="bg-black rounded-xl overflow-hidden shadow-md">
+                  <div key={menuItem.id} className="bg-slate-900 rounded-xl overflow-hidden shadow-md">
                     {menuItem.recipe.imageURL && (
                       <div className="relative w-full aspect-video">
                         <img
@@ -274,7 +274,7 @@ export default function GatheringDetailView({
       {/* Confirmation Dialogs */}
       {showCancelConfirmation && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end">
-          <div className="bg-black rounded-t-2xl p-6 w-full max-w-md mx-auto">
+          <div className="bg-slate-900 rounded-t-2xl p-6 w-full max-w-md mx-auto">
             <h3 className="text-lg font-semibold mb-2 text-white">Cancel Reservation</h3>
             <p className="text-sm text-gray-300 mb-4">
               Are you sure you want to cancel your reservation?
@@ -300,7 +300,7 @@ export default function GatheringDetailView({
 
       {showBookConfirmation && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end">
-          <div className="bg-black rounded-t-2xl p-6 w-full max-w-md mx-auto">
+          <div className="bg-slate-900 rounded-t-2xl p-6 w-full max-w-md mx-auto">
             <h3 className="text-lg font-semibold mb-2 text-white">Book Reservation</h3>
             <p className="text-sm text-gray-300 mb-4">
               Book a seat for {gathering.title}?
