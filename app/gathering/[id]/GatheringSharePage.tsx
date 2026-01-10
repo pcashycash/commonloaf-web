@@ -93,7 +93,7 @@ export default function GatheringSharePage({ gathering, gatheringId }: Gathering
           {/* Fallback message */}
           <p className="text-sm text-gray-500 text-center mt-4">
             Don't have the app?{" "}
-            <a href="https://apps.apple.com/app/the-common-loaf" className="text-blue-600 underline">
+            <a href="https://apps.apple.com/us/app/common-loaf/id6755270642" className="text-blue-600 underline">
               Download from the App Store
             </a>
           </p>
