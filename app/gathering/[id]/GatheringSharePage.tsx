@@ -5,6 +5,9 @@ import { formatDate } from "@/lib/utils/dateFormatter";
 import type { FoodItem, EmbeddedAttendee, EmbeddedLocation } from "@/lib/models/Gathering";
 import type { User } from "@/lib/models/User";
 import BookingModal from "@/app/components/gatherings/BookingModal";
+import { firestoreService } from "@/lib/services/FirestoreService";
+
+const STORAGE_KEY = "commonloaf_user";
 
 interface GatheringSharePageProps {
   gathering: {
@@ -36,6 +39,26 @@ export default function GatheringSharePage({ gathering, gatheringId, hostFirstNa
   const [localAttendees, setLocalAttendees] = useState<EmbeddedAttendee[]>(gathering.attendees ?? []);
   const [showSuccess, setShowSuccess] = useState(false);
   const [successFading, setSuccessFading] = useState(false);
+  const [storedUser, setStoredUser] = useState<User | null>(null);
+  const [autoBookLoading, setAutoBookLoading] = useState(false);
+
+  // On mount — check localStorage for a returning user
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      const user = JSON.parse(raw) as User;
+      if (user.id && gathering.attendeeUserIds.includes(user.id)) {
+        // Already booked — restore their confirmed state silently
+        setBookedUser(user);
+      } else {
+        // Known user, not yet booked for this gathering
+        setStoredUser(user);
+      }
+    } catch {
+      // Ignore malformed storage
+    }
+  }, []);
 
   const [confettiPieces] = useState(() =>
     Array.from({ length: 65 }, (_, i) => ({
@@ -69,8 +92,12 @@ export default function GatheringSharePage({ gathering, gatheringId, hostFirstNa
 
   const handleSuccess = (user: User) => {
     setBookedUser(user);
+    setStoredUser(null);
     setShowSuccess(true);
     setSuccessFading(false);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+    } catch {}
     if (user.id && !localAttendeeIds.includes(user.id)) {
       setLocalAttendeeIds((prev) => [...prev, user.id!]);
       setLocalAttendees((prev) => [
@@ -83,6 +110,28 @@ export default function GatheringSharePage({ gathering, gatheringId, hostFirstNa
         },
       ]);
     }
+  };
+
+  const handleAutoBook = async () => {
+    if (!storedUser || autoBookLoading) return;
+    setAutoBookLoading(true);
+    try {
+      await firestoreService.registerGuestForGathering(gatheringId, storedUser);
+    } catch (err: any) {
+      if (err.message !== "Already registered") {
+        // Fall back to normal modal on unexpected errors
+        setAutoBookLoading(false);
+        setShowModal(true);
+        return;
+      }
+    }
+    handleSuccess(storedUser);
+    setAutoBookLoading(false);
+  };
+
+  const handleForgetUser = () => {
+    localStorage.removeItem(STORAGE_KEY);
+    setStoredUser(null);
   };
 
   return (
@@ -219,6 +268,22 @@ export default function GatheringSharePage({ gathering, gatheringId, hostFirstNa
           >
             Event is Full
           </button>
+        ) : storedUser ? (
+          <div className="space-y-2">
+            <button
+              onClick={handleAutoBook}
+              disabled={autoBookLoading}
+              className="w-full py-4 rounded-xl font-semibold text-white bg-[var(--color-primary)] disabled:opacity-50"
+            >
+              {autoBookLoading ? "Booking…" : `Book as ${storedUser.firstName} →`}
+            </button>
+            <button
+              onClick={handleForgetUser}
+              className="w-full py-1 text-sm text-center text-gray-500"
+            >
+              Not you?
+            </button>
+          </div>
         ) : (
           <button
             onClick={() => setShowModal(true)}
