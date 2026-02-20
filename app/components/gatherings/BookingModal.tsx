@@ -113,7 +113,7 @@ export default function BookingModal({ gatheringId, onClose, onSuccess }: Bookin
         <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-white/20" />
 
         {step === "phone" && (
-          <form onSubmit={handlePhoneSubmit} className="space-y-5">
+          <form onSubmit={handlePhoneSubmit} autoComplete="on" className="space-y-5">
             <div>
               <h2 className="text-2xl font-semibold text-white">What's your number?</h2>
               <p className="mt-1 text-sm text-gray-400">We'll use this to reserve your spot.</p>
@@ -125,6 +125,9 @@ export default function BookingModal({ gatheringId, onClose, onSuccess }: Bookin
               onChange={(e) => setPhone(e.target.value)}
               placeholder="(555) 000-0000"
               autoFocus
+              autoComplete="tel"
+              inputMode="tel"
+              name="tel"
               className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] text-lg"
             />
 
