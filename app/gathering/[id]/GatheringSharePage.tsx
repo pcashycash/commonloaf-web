@@ -21,11 +21,13 @@ interface GatheringSharePageProps {
     location?: EmbeddedLocation | null;
     attendees?: EmbeddedAttendee[];
     food?: FoodItem[];
+    hostUserId?: string | null;
   };
   gatheringId: string;
+  hostFirstName?: string;
 }
 
-export default function GatheringSharePage({ gathering, gatheringId }: GatheringSharePageProps) {
+export default function GatheringSharePage({ gathering, gatheringId, hostFirstName }: GatheringSharePageProps) {
   const startDate = new Date(gathering.start);
 
   const [showModal, setShowModal] = useState(false);
@@ -208,6 +210,7 @@ export default function GatheringSharePage({ gathering, gatheringId }: Gathering
       {showModal && (
         <BookingModal
           gatheringId={gatheringId}
+          hostFirstName={hostFirstName}
           onClose={() => setShowModal(false)}
           onSuccess={handleSuccess}
         />

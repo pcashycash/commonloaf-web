@@ -20,6 +20,19 @@ function getFirestoreInstance() {
   return getFirestore(app);
 }
 
+// Fetch the host's first name from the users collection
+async function getHostFirstName(hostUserId: string | undefined): Promise<string | undefined> {
+  if (!hostUserId) return undefined;
+  try {
+    const db = getFirestoreInstance();
+    const userDoc = await getDoc(doc(db, "users", hostUserId));
+    if (!userDoc.exists()) return undefined;
+    return (userDoc.data().firstName as string) || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 // Server-side function to fetch gathering data for metadata
 async function getGatheringData(id: string) {
   try {
@@ -48,6 +61,7 @@ async function getGatheringData(id: string) {
       location: gathering.location || null,
       attendees: gathering.attendees || [],
       food: gathering.food || [],
+      hostUserId: gathering.hostUserId || null,
     };
   } catch (error) {
     console.error("Error fetching gathering:", error);
@@ -138,7 +152,9 @@ export default async function GatheringPage({ params }: { params: Promise<{ id: 
     );
   }
 
+  const hostFirstName = await getHostFirstName(gathering.hostUserId ?? undefined);
+
   // Client component handles the redirect and UI
-  return <GatheringSharePage gathering={gathering} gatheringId={id} />;
+  return <GatheringSharePage gathering={gathering} gatheringId={id} hostFirstName={hostFirstName} />;
 }
 

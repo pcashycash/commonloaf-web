@@ -4,20 +4,20 @@ import { useState, useEffect } from "react";
 import { firestoreService } from "@/lib/services/FirestoreService";
 import type { User } from "@/lib/models/User";
 
-type Step = "phone" | "confirm" | "new_user" | "success";
+type Step = "phone" | "new_user" | "success";
 
 interface BookingModalProps {
   gatheringId: string;
+  hostFirstName?: string;
   onClose: () => void;
   onSuccess: (user: User) => void;
 }
 
-export default function BookingModal({ gatheringId, onClose, onSuccess }: BookingModalProps) {
+export default function BookingModal({ gatheringId, hostFirstName, onClose, onSuccess }: BookingModalProps) {
   const [step, setStep] = useState<Step>("phone");
   const [phone, setPhone] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [foundUser, setFoundUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [visible, setVisible] = useState(false);
@@ -43,8 +43,15 @@ export default function BookingModal({ gatheringId, onClose, onSuccess }: Bookin
     try {
       const user = await firestoreService.findUserByPhone(phone);
       if (user) {
-        setFoundUser(user);
-        setStep("confirm");
+        // Auto-book — skip confirmation step
+        try {
+          await firestoreService.registerGuestForGathering(gatheringId, user);
+        } catch (bookErr: any) {
+          // Already registered is fine — still show success
+          if (bookErr.message !== "Already registered") throw bookErr;
+        }
+        setStep("success");
+        onSuccess(user);
       } else {
         setStep("new_user");
       }
@@ -54,26 +61,6 @@ export default function BookingModal({ gatheringId, onClose, onSuccess }: Bookin
         setError("Permission denied — Firestore rules need updating. See firestore.rules.");
       } else {
         setError(msg || "Something went wrong. Please try again.");
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleConfirmBook = async () => {
-    if (!foundUser || isLoading) return;
-    setIsLoading(true);
-    setError(null);
-    try {
-      await firestoreService.registerGuestForGathering(gatheringId, foundUser);
-      setStep("success");
-      onSuccess(foundUser);
-    } catch (err: any) {
-      if (err.message === "Already registered") {
-        setStep("success");
-        onSuccess(foundUser);
-      } else {
-        setError(err.message || "Something went wrong. Please try again.");
       }
     } finally {
       setIsLoading(false);
@@ -97,8 +84,24 @@ export default function BookingModal({ gatheringId, onClose, onSuccess }: Bookin
     }
   };
 
+  const successMessage = hostFirstName
+    ? `${hostFirstName} looks forward to seeing you!`
+    : "You're in!";
+
   return (
     <>
+      <style>{`
+        @keyframes successPop {
+          0%   { transform: scale(0.4); opacity: 0; }
+          70%  { transform: scale(1.15); opacity: 1; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes successFadeUp {
+          0%   { transform: translateY(14px); opacity: 0; }
+          100% { transform: translateY(0);    opacity: 1; }
+        }
+      `}</style>
+
       {/* Backdrop */}
       <div
         className="fixed inset-0 z-40 bg-black/60"
@@ -147,39 +150,9 @@ export default function BookingModal({ gatheringId, onClose, onSuccess }: Bookin
                   : "bg-[var(--color-primary)] opacity-40 cursor-not-allowed"
               }`}
             >
-              {isLoading ? "Looking you up…" : "Continue"}
+              {isLoading ? "Reserving your seat…" : "Continue"}
             </button>
           </form>
-        )}
-
-        {step === "confirm" && foundUser && (
-          <div className="space-y-5">
-            <div>
-              <h2 className="text-2xl font-semibold text-white">
-                Hi, {foundUser.firstName}!
-              </h2>
-              <p className="mt-1 text-sm text-gray-400">Tap below to grab your seat.</p>
-            </div>
-
-            {error && <p className="text-sm text-red-400">{error}</p>}
-
-            <button
-              onClick={handleConfirmBook}
-              disabled={isLoading}
-              className={`w-full rounded-xl py-4 font-semibold text-white ${
-                !isLoading ? "bg-[var(--color-primary)]" : "bg-[var(--color-primary)] opacity-40 cursor-not-allowed"
-              }`}
-            >
-              {isLoading ? "Reserving…" : "Book my seat"}
-            </button>
-
-            <button
-              onClick={() => { setFoundUser(null); setStep("phone"); setError(null); }}
-              className="w-full text-sm text-gray-400 underline"
-            >
-              That's not me
-            </button>
-          </div>
         )}
 
         {step === "new_user" && (
@@ -231,15 +204,24 @@ export default function BookingModal({ gatheringId, onClose, onSuccess }: Bookin
         )}
 
         {step === "success" && (
-          <div className="space-y-5 text-center">
-            <div className="text-5xl">🎉</div>
-            <div>
-              <h2 className="text-2xl font-semibold text-white">You're in!</h2>
-              <p className="mt-1 text-sm text-gray-400">We'll see you there.</p>
+          <div className="space-y-5 text-center py-4">
+            <div
+              className="text-5xl"
+              style={{ animation: "successPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards" }}
+            >
+              🍽️
             </div>
+
+            <div style={{ animation: "successFadeUp 0.4s ease 0.25s both" }}>
+              <h2 className="text-2xl font-semibold text-white leading-snug">
+                {successMessage}
+              </h2>
+            </div>
+
             <button
               onClick={handleClose}
               className="w-full rounded-xl py-4 font-semibold text-white bg-[var(--color-primary)]"
+              style={{ animation: "successFadeUp 0.4s ease 0.45s both" }}
             >
               Done
             </button>

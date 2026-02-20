@@ -4,6 +4,9 @@ import { getFirestore, collection, query, where, orderBy, getDocs, Timestamp } f
 import { gatheringFromFirestore } from "@/lib/models/Gathering";
 import GatheringsListView from "./GatheringsListView";
 
+// Always fetch fresh data — don't cache the gatherings list at build time
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Upcoming Dinners – The Common Loaf",
   description: "Browse upcoming home-hosted dinners and reserve your seat.",
