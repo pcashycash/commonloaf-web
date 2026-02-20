@@ -4,16 +4,15 @@ import { useState, useEffect } from "react";
 import { firestoreService } from "@/lib/services/FirestoreService";
 import type { User } from "@/lib/models/User";
 
-type Step = "phone" | "new_user" | "success";
+type Step = "phone" | "new_user";
 
 interface BookingModalProps {
   gatheringId: string;
-  hostFirstName?: string;
   onClose: () => void;
   onSuccess: (user: User) => void;
 }
 
-export default function BookingModal({ gatheringId, hostFirstName, onClose, onSuccess }: BookingModalProps) {
+export default function BookingModal({ gatheringId, onClose, onSuccess }: BookingModalProps) {
   const [step, setStep] = useState<Step>("phone");
   const [phone, setPhone] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -50,8 +49,8 @@ export default function BookingModal({ gatheringId, hostFirstName, onClose, onSu
           // Already registered is fine — still show success
           if (bookErr.message !== "Already registered") throw bookErr;
         }
-        setStep("success");
         onSuccess(user);
+        handleClose();
       } else {
         setStep("new_user");
       }
@@ -75,8 +74,8 @@ export default function BookingModal({ gatheringId, hostFirstName, onClose, onSu
     try {
       const newUser = await firestoreService.createGuestUser(firstName.trim(), lastName.trim(), phone);
       await firestoreService.registerGuestForGathering(gatheringId, newUser);
-      setStep("success");
       onSuccess(newUser);
+      handleClose();
     } catch (err: any) {
       setError(err.message || "Something went wrong. Please try again.");
     } finally {
@@ -84,24 +83,8 @@ export default function BookingModal({ gatheringId, hostFirstName, onClose, onSu
     }
   };
 
-  const successMessage = hostFirstName
-    ? `${hostFirstName} looks forward to seeing you!`
-    : "You're in!";
-
   return (
     <>
-      <style>{`
-        @keyframes successPop {
-          0%   { transform: scale(0.4); opacity: 0; }
-          70%  { transform: scale(1.15); opacity: 1; }
-          100% { transform: scale(1); opacity: 1; }
-        }
-        @keyframes successFadeUp {
-          0%   { transform: translateY(14px); opacity: 0; }
-          100% { transform: translateY(0);    opacity: 1; }
-        }
-      `}</style>
-
       {/* Backdrop */}
       <div
         className="fixed inset-0 z-40 bg-black/60"
@@ -203,30 +186,6 @@ export default function BookingModal({ gatheringId, hostFirstName, onClose, onSu
           </form>
         )}
 
-        {step === "success" && (
-          <div className="space-y-5 text-center py-4">
-            <div
-              className="text-5xl"
-              style={{ animation: "successPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards" }}
-            >
-              🍽️
-            </div>
-
-            <div style={{ animation: "successFadeUp 0.4s ease 0.25s both" }}>
-              <h2 className="text-2xl font-semibold text-white leading-snug">
-                {successMessage}
-              </h2>
-            </div>
-
-            <button
-              onClick={handleClose}
-              className="w-full rounded-xl py-4 font-semibold text-white bg-[var(--color-primary)]"
-              style={{ animation: "successFadeUp 0.4s ease 0.45s both" }}
-            >
-              Done
-            </button>
-          </div>
-        )}
       </div>
     </>
   );

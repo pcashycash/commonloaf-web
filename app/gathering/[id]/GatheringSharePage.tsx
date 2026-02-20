@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { formatDate } from "@/lib/utils/dateFormatter";
 import type { FoodItem, EmbeddedAttendee, EmbeddedLocation } from "@/lib/models/Gathering";
 import type { User } from "@/lib/models/User";
@@ -34,6 +34,27 @@ export default function GatheringSharePage({ gathering, gatheringId, hostFirstNa
   const [bookedUser, setBookedUser] = useState<User | null>(null);
   const [localAttendeeIds, setLocalAttendeeIds] = useState<string[]>(gathering.attendeeUserIds);
   const [localAttendees, setLocalAttendees] = useState<EmbeddedAttendee[]>(gathering.attendees ?? []);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [successFading, setSuccessFading] = useState(false);
+
+  const [confettiPieces] = useState(() =>
+    Array.from({ length: 65 }, (_, i) => ({
+      id: i,
+      left: Math.random() * 100,
+      color: ["#FFB74D", "#FF7043", "#4CAF50", "#42A5F5", "#AB47BC", "#EF5350", "#FFCA28", "#26C6DA", "#FF8A65", "#66BB6A"][Math.floor(Math.random() * 10)],
+      size: Math.random() * 8 + 6,
+      duration: Math.random() * 1.2 + 1.8,
+      delay: Math.random() * 1.8,
+      isRect: Math.random() > 0.5,
+    }))
+  );
+
+  useEffect(() => {
+    if (!showSuccess) return;
+    const fadeTimer = setTimeout(() => setSuccessFading(true), 2500);
+    const hideTimer = setTimeout(() => setShowSuccess(false), 3000);
+    return () => { clearTimeout(fadeTimer); clearTimeout(hideTimer); };
+  }, [showSuccess]);
 
   const spotsLeft =
     gathering.maxAttendees
@@ -48,6 +69,8 @@ export default function GatheringSharePage({ gathering, gatheringId, hostFirstNa
 
   const handleSuccess = (user: User) => {
     setBookedUser(user);
+    setShowSuccess(true);
+    setSuccessFading(false);
     if (user.id && !localAttendeeIds.includes(user.id)) {
       setLocalAttendeeIds((prev) => [...prev, user.id!]);
       setLocalAttendees((prev) => [
@@ -210,10 +233,93 @@ export default function GatheringSharePage({ gathering, gatheringId, hostFirstNa
       {showModal && (
         <BookingModal
           gatheringId={gatheringId}
-          hostFirstName={hostFirstName}
           onClose={() => setShowModal(false)}
           onSuccess={handleSuccess}
         />
+      )}
+
+      {/* Success celebration overlay */}
+      {showSuccess && (
+        <div
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden"
+          style={{
+            background: "rgba(12, 12, 12, 0.96)",
+            opacity: successFading ? 0 : 1,
+            transition: "opacity 500ms ease",
+          }}
+        >
+          <style>{`
+            @keyframes confettiFall {
+              0%   { transform: translateY(-16px) rotate(0deg); opacity: 1; }
+              85%  { opacity: 1; }
+              100% { transform: translateY(105vh) rotate(600deg); opacity: 0; }
+            }
+            @keyframes celebrationPop {
+              0%   { transform: scale(0.3); opacity: 0; }
+              55%  { transform: scale(1.45); opacity: 1; }
+              75%  { transform: scale(0.88); }
+              90%  { transform: scale(1.06); }
+              100% { transform: scale(1); opacity: 1; }
+            }
+            @keyframes celebrationFadeUp {
+              0%   { transform: translateY(22px); opacity: 0; }
+              100% { transform: translateY(0);    opacity: 1; }
+            }
+            @keyframes pulseGlow {
+              0%, 100% { opacity: 1; }
+              50%       { opacity: 0.65; }
+            }
+          `}</style>
+
+          {/* Confetti */}
+          {confettiPieces.map((piece) => (
+            <div
+              key={piece.id}
+              style={{
+                position: "absolute",
+                left: `${piece.left}%`,
+                top: 0,
+                width: piece.isRect ? `${piece.size * 0.55}px` : `${piece.size}px`,
+                height: `${piece.size}px`,
+                borderRadius: piece.isRect ? "2px" : "50%",
+                backgroundColor: piece.color,
+                animation: `confettiFall ${piece.duration}s ${piece.delay}s ease-in forwards`,
+              }}
+            />
+          ))}
+
+          {/* Center content */}
+          <div className="relative z-10 text-center px-8 space-y-5">
+            <div
+              className="text-8xl select-none"
+              style={{ animation: "celebrationPop 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards" }}
+            >
+              🍽️
+            </div>
+
+            <div style={{ animation: "celebrationFadeUp 0.55s ease 0.4s both" }}>
+              <h2 className="text-3xl font-bold text-white leading-snug">
+                {hostFirstName
+                  ? `${hostFirstName} looks forward to seeing you!`
+                  : bookedUser?.firstName
+                  ? `You're in, ${bookedUser.firstName}!`
+                  : "You're in!"}
+              </h2>
+            </div>
+
+            <div style={{ animation: "celebrationFadeUp 0.55s ease 0.65s both" }}>
+              <p
+                className="text-lg font-semibold"
+                style={{
+                  color: "var(--color-warm-apricot)",
+                  animation: "pulseGlow 1.8s ease 1.2s infinite",
+                }}
+              >
+                Your seat is reserved ✓
+              </p>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
