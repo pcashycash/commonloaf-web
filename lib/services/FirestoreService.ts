@@ -5,6 +5,7 @@ import {
   getDocs,
   getDoc,
   doc,
+  setDoc,
   Timestamp,
   updateDoc,
   runTransaction,
@@ -16,6 +17,7 @@ import { Gathering, gatheringFromFirestore } from "../models/Gathering";
 import { User, userFromFirestore } from "../models/User";
 import { Recipe, recipeFromFirestore } from "../models/Recipe";
 import { Location, locationFromFirestore } from "../models/Location";
+import { normalizePhoneNumberToDigits, normalizePhoneForAuth } from "../utils/phoneNumber";
 
 export class FirestoreService {
   async fetchUpcomingGatherings(): Promise<Gathering[]> {
@@ -262,10 +264,10 @@ export class FirestoreService {
       throw new Error("Firebase is not initialized. Please check your environment variables.");
     }
     if (ids.length === 0) return [];
-    
+
     // Fetch documents directly by ID
     const allLocations: Location[] = [];
-    
+
     for (const id of ids) {
       try {
         const document = await getDoc(doc(db, "locations", id));
@@ -277,8 +279,86 @@ export class FirestoreService {
         console.warn(`Failed to fetch location ${id}:`, error);
       }
     }
-    
+
     return allLocations;
+  }
+
+  async findUserByPhone(phoneNumber: string): Promise<User | null> {
+    if (!db) {
+      throw new Error("Firebase is not initialized. Please check your environment variables.");
+    }
+    const normalizedInput = normalizePhoneNumberToDigits(phoneNumber);
+    const snapshot = await getDocs(collection(db, "users"));
+    const match = snapshot.docs.find((d) => {
+      const stored = d.data().phoneNumber;
+      if (!stored) return false;
+      return normalizePhoneNumberToDigits(stored) === normalizedInput;
+    });
+    if (!match) return null;
+    return userFromFirestore({ id: match.id, ...match.data() } as any);
+  }
+
+  async createGuestUser(firstName: string, lastName: string, phoneNumber: string): Promise<User> {
+    if (!db) {
+      throw new Error("Firebase is not initialized. Please check your environment variables.");
+    }
+    const normalizedPhone = normalizePhoneForAuth(phoneNumber);
+    const newDocRef = doc(collection(db, "users"));
+    const user: User = {
+      id: newDocRef.id,
+      firstName,
+      lastName,
+      phoneNumber: normalizedPhone,
+      createdAt: new Date(),
+    };
+    await setDoc(newDocRef, {
+      firstName: user.firstName,
+      lastName: user.lastName,
+      phoneNumber: user.phoneNumber,
+      createdAt: user.createdAt,
+    });
+    return user;
+  }
+
+  async registerGuestForGathering(gatheringId: string, user: User): Promise<void> {
+    if (!db) {
+      throw new Error("Firebase is not initialized. Please check your environment variables.");
+    }
+    if (!user.id) throw new Error("User has no ID");
+
+    const gatheringRef = doc(db, "gatherings", gatheringId);
+
+    await runTransaction(db, async (transaction) => {
+      const gatheringDoc = await transaction.get(gatheringRef);
+      if (!gatheringDoc.exists()) throw new Error("Gathering not found");
+
+      const data = gatheringDoc.data();
+      const gathering = gatheringFromFirestore({ id: gatheringDoc.id, ...data } as any);
+
+      if (gathering.attendeeUserIds.includes(user.id!)) {
+        throw new Error("Already registered");
+      }
+
+      if (gathering.maxAttendees && gathering.attendeeUserIds.length >= gathering.maxAttendees) {
+        throw new Error("Gathering is full");
+      }
+
+      const updatedAttendeeIds = [...gathering.attendeeUserIds, user.id!];
+      const updatedAttendees = [
+        ...(gathering.attendees || []),
+        {
+          id: user.id!,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          phoneNumber: user.phoneNumber || "",
+        },
+      ];
+
+      transaction.update(gatheringRef, {
+        attendeeUserIds: updatedAttendeeIds,
+        attendees: updatedAttendees,
+      });
+    });
   }
 }
 

@@ -1,8 +1,10 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { formatDate } from "@/lib/utils/dateFormatter";
 import type { FoodItem, EmbeddedAttendee, EmbeddedLocation } from "@/lib/models/Gathering";
+import type { User } from "@/lib/models/User";
+import BookingModal from "@/app/components/gatherings/BookingModal";
 
 interface GatheringSharePageProps {
   gathering: {
@@ -24,22 +26,38 @@ interface GatheringSharePageProps {
 }
 
 export default function GatheringSharePage({ gathering, gatheringId }: GatheringSharePageProps) {
-  const router = useRouter();
   const startDate = new Date(gathering.start);
+
+  const [showModal, setShowModal] = useState(false);
+  const [bookedUser, setBookedUser] = useState<User | null>(null);
+  const [localAttendeeIds, setLocalAttendeeIds] = useState<string[]>(gathering.attendeeUserIds);
+  const [localAttendees, setLocalAttendees] = useState<EmbeddedAttendee[]>(gathering.attendees ?? []);
 
   const spotsLeft =
     gathering.maxAttendees
-      ? Math.max(0, gathering.maxAttendees - gathering.attendeeUserIds.length)
+      ? Math.max(0, gathering.maxAttendees - localAttendeeIds.length)
       : null;
   const isFull =
     gathering.maxAttendees != null
-      ? gathering.attendeeUserIds.length >= gathering.maxAttendees
+      ? localAttendeeIds.length >= gathering.maxAttendees
       : false;
 
   const sortedFood = [...(gathering.food || [])].sort((a, b) => a.order - b.order);
 
-  const handleBookSeat = () => {
-    router.push(`/?next=/gathering/${gatheringId}`);
+  const handleSuccess = (user: User) => {
+    setBookedUser(user);
+    if (user.id && !localAttendeeIds.includes(user.id)) {
+      setLocalAttendeeIds((prev) => [...prev, user.id!]);
+      setLocalAttendees((prev) => [
+        ...prev,
+        {
+          id: user.id!,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          phoneNumber: user.phoneNumber || "",
+        },
+      ]);
+    }
   };
 
   return (
@@ -127,19 +145,19 @@ export default function GatheringSharePage({ gathering, gatheringId }: Gathering
             </div>
           )}
 
-          {sortedFood.length > 0 && (gathering.attendees?.length ?? 0) > 0 && (
+          {sortedFood.length > 0 && localAttendees.length > 0 && (
             <div className="h-px bg-white/10" />
           )}
 
           {/* Attendees */}
-          {(gathering.attendees?.length ?? 0) > 0 && (
+          {localAttendees.length > 0 && (
             <div className="space-y-3">
               <h2 className="text-lg font-semibold text-white">
-                {gathering.attendees!.length}{" "}
-                {gathering.attendees!.length === 1 ? "Guest" : "Guests"}
+                {localAttendees.length}{" "}
+                {localAttendees.length === 1 ? "Guest" : "Guests"}
               </h2>
               <div className="flex gap-2 flex-wrap">
-                {gathering.attendees!.map((attendee) => {
+                {localAttendees.map((attendee) => {
                   const initials =
                     `${attendee.firstName[0] || ""}${attendee.lastName[0] || ""}`.toUpperCase() ||
                     "?";
@@ -165,6 +183,10 @@ export default function GatheringSharePage({ gathering, gatheringId }: Gathering
           <p className="w-full py-3 text-center text-gray-400 text-sm">
             This is a private event.
           </p>
+        ) : bookedUser ? (
+          <p className="w-full py-3 text-center text-[var(--color-warm-apricot)] font-medium">
+            You're registered, {bookedUser.firstName}!
+          </p>
         ) : isFull ? (
           <button
             disabled
@@ -174,13 +196,22 @@ export default function GatheringSharePage({ gathering, gatheringId }: Gathering
           </button>
         ) : (
           <button
-            onClick={handleBookSeat}
+            onClick={() => setShowModal(true)}
             className="w-full py-4 rounded-xl font-semibold text-white bg-[var(--color-primary)]"
           >
             Book a Seat
           </button>
         )}
       </div>
+
+      {/* Booking modal */}
+      {showModal && (
+        <BookingModal
+          gatheringId={gatheringId}
+          onClose={() => setShowModal(false)}
+          onSuccess={handleSuccess}
+        />
+      )}
     </div>
   );
 }

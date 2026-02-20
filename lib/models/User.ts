@@ -1,6 +1,6 @@
 export interface User {
   id?: string;
-  email: string;
+  email?: string;
   firstName: string;
   lastName: string;
   phoneNumber?: string;
@@ -10,7 +10,7 @@ export interface User {
 
 export interface UserData {
   id?: string;
-  email: string;
+  email?: string;
   firstName: string;
   lastName: string;
   phoneNumber?: string;
@@ -31,14 +31,15 @@ export function userFromFirestore(data: UserData): User {
 }
 
 export function userToFirestore(user: User): UserData {
-  return {
+  const data: UserData = {
     id: user.id,
-    email: user.email,
     firstName: user.firstName,
     lastName: user.lastName,
-    phoneNumber: user.phoneNumber,
     createdAt: user.createdAt,
-    isDeleted: user.isDeleted,
   };
+  if (user.email !== undefined) data.email = user.email;
+  if (user.phoneNumber !== undefined) data.phoneNumber = user.phoneNumber;
+  if (user.isDeleted !== undefined) data.isDeleted = user.isDeleted;
+  return data;
 }
 
