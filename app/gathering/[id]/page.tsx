@@ -4,6 +4,12 @@ import { gatheringFromFirestore } from "@/lib/models/Gathering";
 import { doc, getDoc, getFirestore } from "firebase/firestore";
 import { initializeApp, getApps } from "firebase/app";
 
+export type RecipeInfo = {
+  name: string;
+  description?: string;
+  imageURL?: string;
+};
+
 // Initialize Firebase for server-side use
 function getFirestoreInstance() {
   const firebaseConfig = {
@@ -18,6 +24,30 @@ function getFirestoreInstance() {
   // Initialize Firebase app if not already initialized
   const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
   return getFirestore(app);
+}
+
+// Fetch recipe details for all food items
+async function getRecipes(recipeIds: string[]): Promise<Record<string, RecipeInfo>> {
+  if (recipeIds.length === 0) return {};
+  try {
+    const db = getFirestoreInstance();
+    const recipes: Record<string, RecipeInfo> = {};
+    for (const id of recipeIds) {
+      if (!id) continue;
+      const recipeDoc = await getDoc(doc(db, "recipes", id));
+      if (recipeDoc.exists()) {
+        const d = recipeDoc.data();
+        recipes[id] = {
+          name: d.name,
+          description: d.description,
+          imageURL: d.imageURL,
+        };
+      }
+    }
+    return recipes;
+  } catch {
+    return {};
+  }
 }
 
 // Fetch the host's first name from the users collection
@@ -59,7 +89,13 @@ async function getGatheringData(id: string) {
       isPublic: gathering.isPublic ?? true,
       costPerSeat: gathering.costPerSeat ?? null,
       location: gathering.location || null,
-      attendees: gathering.attendees || [],
+      // Strip phone numbers — never expose them to the client
+      attendees: (gathering.attendees || []).map(({ id, firstName, lastName }) => ({
+        id,
+        firstName,
+        lastName,
+        phoneNumber: "",
+      })),
       food: gathering.food || [],
       hostUserId: gathering.hostUserId || null,
     };
@@ -153,8 +189,9 @@ export default async function GatheringPage({ params }: { params: Promise<{ id: 
   }
 
   const hostFirstName = await getHostFirstName(gathering.hostUserId ?? undefined);
+  const recipeIds = (gathering.food || []).map((f) => f.recipeId).filter(Boolean);
+  const recipes = await getRecipes(recipeIds);
 
-  // Client component handles the redirect and UI
-  return <GatheringSharePage gathering={gathering} gatheringId={id} hostFirstName={hostFirstName} />;
+  return <GatheringSharePage gathering={gathering} gatheringId={id} hostFirstName={hostFirstName} recipes={recipes} />;
 }
 

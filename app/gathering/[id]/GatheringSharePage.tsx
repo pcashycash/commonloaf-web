@@ -7,6 +7,7 @@ import type { FoodItem, EmbeddedAttendee, EmbeddedLocation } from "@/lib/models/
 import type { User } from "@/lib/models/User";
 import BookingModal from "@/app/components/gatherings/BookingModal";
 import { firestoreService } from "@/lib/services/FirestoreService";
+import type { RecipeInfo } from "./page";
 
 const STORAGE_KEY = "commonloaf_user";
 
@@ -29,9 +30,10 @@ interface GatheringSharePageProps {
   };
   gatheringId: string;
   hostFirstName?: string;
+  recipes?: Record<string, RecipeInfo>;
 }
 
-export default function GatheringSharePage({ gathering, gatheringId, hostFirstName }: GatheringSharePageProps) {
+export default function GatheringSharePage({ gathering, gatheringId, hostFirstName, recipes = {} }: GatheringSharePageProps) {
   const startDate = new Date(gathering.start);
   const router = useRouter();
 
@@ -163,14 +165,16 @@ export default function GatheringSharePage({ gathering, gatheringId, hostFirstNa
 
   return (
     <div className="min-h-screen bg-[var(--color-secondary-background)] flex flex-col">
-      {/* Hero image */}
+      {/* Hero image — padded with rounded corners */}
       {gathering.imageURL && (
-        <div className="w-full aspect-video">
-          <img
-            src={gathering.imageURL}
-            alt={gathering.title}
-            className="w-full h-full object-cover"
-          />
+        <div className="px-5 pt-5">
+          <div className="w-full aspect-video rounded-2xl overflow-hidden">
+            <img
+              src={gathering.imageURL}
+              alt={gathering.title}
+              className="w-full h-full object-cover"
+            />
+          </div>
         </div>
       )}
 
@@ -182,7 +186,19 @@ export default function GatheringSharePage({ gathering, gatheringId, hostFirstNa
 
           {/* Date */}
           <div className="flex items-center gap-3 text-gray-300">
-            <span className="text-xl">📅</span>
+            {/* Dynamic calendar badge */}
+            <div className="flex flex-col items-center w-10 rounded-lg overflow-hidden border border-white/15 shrink-0">
+              <div className="w-full bg-red-600 text-center py-0.5">
+                <span className="text-[9px] font-bold text-white tracking-wider">
+                  {startDate.toLocaleDateString("en-US", { month: "short" }).toUpperCase()}
+                </span>
+              </div>
+              <div className="bg-white/10 w-full text-center py-1">
+                <span className="text-base font-bold text-white leading-none">
+                  {startDate.getDate()}
+                </span>
+              </div>
+            </div>
             <span className="text-base">{formatDate(startDate)}</span>
           </div>
 
@@ -231,17 +247,31 @@ export default function GatheringSharePage({ gathering, gatheringId, hostFirstNa
 
           {/* Menu */}
           {sortedFood.length > 0 && (
-            <div className="space-y-3">
+            <div className="space-y-4">
               <h2 className="text-lg font-semibold text-white">Menu</h2>
-              <div className="space-y-2">
-                {sortedFood.map((item, i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <span className="px-2 py-0.5 rounded text-xs font-medium bg-slate-700/70 text-gray-300 shrink-0">
-                      {item.type}
-                    </span>
-                    <span className="text-gray-200 text-base">{item.name}</span>
-                  </div>
-                ))}
+              <div className="space-y-5">
+                {sortedFood.map((item, i) => {
+                  const recipe = recipes[item.recipeId];
+                  return (
+                    <div key={i} className="space-y-2">
+                      {recipe?.imageURL && (
+                        <div className="w-full aspect-video rounded-xl overflow-hidden">
+                          <img
+                            src={recipe.imageURL}
+                            alt={item.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-gray-100 font-semibold text-base">{item.name}</p>
+                        {recipe?.description && (
+                          <p className="text-gray-400 text-sm mt-0.5 leading-relaxed">{recipe.description}</p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -258,31 +288,22 @@ export default function GatheringSharePage({ gathering, gatheringId, hostFirstNa
                 {localAttendees.length === 1 ? "Guest" : "Guests"}
               </h2>
               <div className="flex gap-2 flex-wrap">
-                {localAttendees.map((attendee) => {
-                  const initials =
-                    `${attendee.firstName[0] || ""}${attendee.lastName[0] || ""}`.toUpperCase() ||
-                    "?";
-                  return (
-                    <div
-                      key={attendee.id}
-                      className="w-11 h-11 rounded-full bg-slate-700/70 flex items-center justify-center text-[var(--color-warm-apricot)] text-sm font-semibold"
-                      title={`${attendee.firstName} ${attendee.lastName}`}
-                    >
-                      {initials}
-                    </div>
-                  );
-                })}
+                {localAttendees.map((attendee) => (
+                  <span
+                    key={attendee.id}
+                    className="px-3 py-1.5 rounded-full bg-slate-700/60 text-gray-200 text-sm"
+                  >
+                    {attendee.firstName} {attendee.lastName[0]?.toUpperCase()}.
+                  </span>
+                ))}
               </div>
             </div>
           )}
 
-          {/* Registered confirmation + cancel — only in scroll area, no footer */}
+          {/* Cancel reservation — only shown when booked, no footer */}
           {bookedUser && (
             <div className="pt-2 space-y-3">
               <div className="h-px bg-white/10" />
-              <p className="text-center text-[var(--color-warm-apricot)] font-medium py-1">
-                You're registered, {bookedUser.firstName}!
-              </p>
               <button
                 onClick={handleCancel}
                 disabled={cancelLoading}
