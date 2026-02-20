@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { formatDate } from "@/lib/utils/dateFormatter";
 import type { FoodItem, EmbeddedAttendee, EmbeddedLocation } from "@/lib/models/Gathering";
 import type { User } from "@/lib/models/User";
@@ -32,6 +33,7 @@ interface GatheringSharePageProps {
 
 export default function GatheringSharePage({ gathering, gatheringId, hostFirstName }: GatheringSharePageProps) {
   const startDate = new Date(gathering.start);
+  const router = useRouter();
 
   const [showModal, setShowModal] = useState(false);
   const [bookedUser, setBookedUser] = useState<User | null>(null);
@@ -41,6 +43,8 @@ export default function GatheringSharePage({ gathering, gatheringId, hostFirstNa
   const [successFading, setSuccessFading] = useState(false);
   const [storedUser, setStoredUser] = useState<User | null>(null);
   const [autoBookLoading, setAutoBookLoading] = useState(false);
+  const [cancelLoading, setCancelLoading] = useState(false);
+  const [showGoodbye, setShowGoodbye] = useState(false);
 
   // On mount — check localStorage for a returning user
   useEffect(() => {
@@ -133,6 +137,29 @@ export default function GatheringSharePage({ gathering, gatheringId, hostFirstNa
     localStorage.removeItem(STORAGE_KEY);
     setStoredUser(null);
   };
+
+  const handleCancel = async () => {
+    if (!bookedUser?.id || cancelLoading) return;
+    setCancelLoading(true);
+    try {
+      await firestoreService.unregisterFromGathering(gatheringId, bookedUser.id);
+    } catch {
+      // Proceed with the local update even if Firestore call fails
+    }
+    // Update local UI state
+    setLocalAttendeeIds((prev) => prev.filter((id) => id !== bookedUser.id));
+    setLocalAttendees((prev) => prev.filter((a) => a.id !== bookedUser.id));
+    setBookedUser(null);
+    setCancelLoading(false);
+    setShowGoodbye(true);
+  };
+
+  // After goodbye overlay: navigate to gatherings list
+  useEffect(() => {
+    if (!showGoodbye) return;
+    const timer = setTimeout(() => router.push("/gatherings"), 3000);
+    return () => clearTimeout(timer);
+  }, [showGoodbye]);
 
   return (
     <div className="min-h-screen bg-[var(--color-secondary-background)] flex flex-col">
@@ -258,9 +285,18 @@ export default function GatheringSharePage({ gathering, gatheringId, hostFirstNa
             This is a private event.
           </p>
         ) : bookedUser ? (
-          <p className="w-full py-3 text-center text-[var(--color-warm-apricot)] font-medium">
-            You're registered, {bookedUser.firstName}!
-          </p>
+          <div className="space-y-1">
+            <p className="w-full py-2 text-center text-[var(--color-warm-apricot)] font-medium">
+              You're registered, {bookedUser.firstName}!
+            </p>
+            <button
+              onClick={handleCancel}
+              disabled={cancelLoading}
+              className="w-full py-1 text-sm text-center text-gray-500 disabled:opacity-40"
+            >
+              {cancelLoading ? "Cancelling…" : "Cancel my spot"}
+            </button>
+          </div>
         ) : isFull ? (
           <button
             disabled
@@ -382,6 +418,53 @@ export default function GatheringSharePage({ gathering, gatheringId, hostFirstNa
               >
                 Your seat is reserved ✓
               </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Goodbye overlay */}
+      {showGoodbye && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center px-8">
+          <style>{`
+            @keyframes goodbyeFadeIn {
+              0%   { opacity: 0; transform: scale(0.92); }
+              100% { opacity: 1; transform: scale(1); }
+            }
+            @keyframes goodbyeFadeUp {
+              0%   { transform: translateY(18px); opacity: 0; }
+              100% { transform: translateY(0);    opacity: 1; }
+            }
+            @keyframes slideToGatherings {
+              0%   { opacity: 1; transform: translateY(0); }
+              80%  { opacity: 1; }
+              100% { opacity: 0; transform: translateY(-24px); }
+            }
+          `}</style>
+
+          <div
+            className="text-center space-y-5"
+            style={{ animation: "goodbyeFadeIn 0.5s ease forwards" }}
+          >
+            <div className="text-7xl select-none">🥺</div>
+
+            <div style={{ animation: "goodbyeFadeUp 0.5s ease 0.3s both" }}>
+              <h2 className="text-2xl font-bold text-white leading-snug">
+                {hostFirstName ? `${hostFirstName} is sad to see you go.` : "We're sad to see you go."}
+              </h2>
+            </div>
+
+            <div style={{ animation: "goodbyeFadeUp 0.5s ease 0.55s both" }}>
+              <p className="text-base text-gray-400 leading-relaxed">
+                Please check out some of the other gatherings.
+              </p>
+            </div>
+
+            <div
+              className="text-sm text-[var(--color-warm-apricot)]"
+              style={{ animation: "goodbyeFadeUp 0.5s ease 0.8s both" }}
+            >
+              Taking you there now…
             </div>
           </div>
         </div>
