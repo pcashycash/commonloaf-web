@@ -287,12 +287,19 @@ export class FirestoreService {
     if (!db) {
       throw new Error("Firebase is not initialized. Please check your environment variables.");
     }
-    const normalizedInput = normalizePhoneNumberToDigits(phoneNumber);
+    // Normalize input to E.164 (+18473452436) to match how numbers are stored
+    const normalizedInput = normalizePhoneForAuth(phoneNumber);
+    const inputDigits = normalizePhoneNumberToDigits(normalizedInput);
     const snapshot = await getDocs(collection(db, "users"));
     const match = snapshot.docs.find((d) => {
       const stored = d.data().phoneNumber;
       if (!stored) return false;
-      return normalizePhoneNumberToDigits(stored) === normalizedInput;
+      const normalizedStored = normalizePhoneForAuth(stored);
+      // Primary: exact E.164 match
+      if (normalizedStored === normalizedInput) return true;
+      // Fallback: compare last 10 digits (handles country code mismatches)
+      const storedDigits = normalizePhoneNumberToDigits(normalizedStored);
+      return inputDigits.length >= 10 && inputDigits.slice(-10) === storedDigits.slice(-10);
     });
     if (!match) return null;
     return userFromFirestore({ id: match.id, ...match.data() } as any);
