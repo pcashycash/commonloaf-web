@@ -1,0 +1,36 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /users/{userId} {
+      // Allow reading the users collection for phone-based identity lookup
+      // (guests are identified by phone number, not Firebase Auth)
+      allow read: if true;
+
+      // Allow creating new guest profiles without authentication
+      allow create: if true;
+
+      // Only the authenticated owner can update or delete their own record
+      allow update, delete: if request.auth != null && request.auth.uid == userId;
+    }
+
+    match /gatherings/{gatheringId} {
+      // All gatherings are readable (public sharing links)
+      allow read: if true;
+
+      // Only authenticated hosts can create or delete gatherings
+      allow create, delete: if request.auth != null;
+
+      // Allow unauthenticated guests to book a seat:
+      // they may only touch the attendeeUserIds and attendees fields
+      allow update: if request.auth != null ||
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['attendeeUserIds', 'attendees']);
+    }
+
+    // Everything else requires authentication
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

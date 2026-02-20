@@ -48,8 +48,13 @@ export default function BookingModal({ gatheringId, onClose, onSuccess }: Bookin
       } else {
         setStep("new_user");
       }
-    } catch {
-      setError("Something went wrong. Please try again.");
+    } catch (err: any) {
+      const msg = err?.message || "";
+      if (msg.includes("permission") || msg.includes("Missing or insufficient")) {
+        setError("Permission denied — Firestore rules need updating. See firestore.rules.");
+      } else {
+        setError(msg || "Something went wrong. Please try again.");
+      }
     } finally {
       setIsLoading(false);
     }
