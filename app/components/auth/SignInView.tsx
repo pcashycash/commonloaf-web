@@ -25,9 +25,14 @@ export default function SignInView() {
 
     try {
       await authService.signInWithEmailAndPassword(email, password);
-      // Sign-in successful - refresh the page
+      // Check for a ?next= redirect (e.g. from clicking "Book a Seat" on an event page)
+      const next = new URLSearchParams(window.location.search).get("next");
       setTimeout(() => {
-        router.refresh();
+        if (next && next.startsWith("/")) {
+          router.push(next);
+        } else {
+          router.refresh();
+        }
       }, 300);
     } catch (error: any) {
       setErrorMessage(error.message || "Failed to sign in");
@@ -106,6 +111,15 @@ export default function SignInView() {
               {errorMessage}
             </div>
           )}
+
+          <div className="mt-8 text-center">
+            <a
+              href="/gatherings"
+              className="text-sm text-[var(--color-warm-apricot)] underline"
+            >
+              Browse upcoming dinners →
+            </a>
+          </div>
         </div>
       </div>
     </div>

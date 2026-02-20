@@ -1,105 +1,186 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { formatDate } from "@/lib/utils/dateFormatter";
+import type { FoodItem, EmbeddedAttendee, EmbeddedLocation } from "@/lib/models/Gathering";
 
 interface GatheringSharePageProps {
   gathering: {
     id?: string;
     title: string;
-    start: Date;
-    end?: Date;
-    imageURL?: string;
-    description?: string;
-    locationId?: string;
+    start: string; // ISO string
+    end?: string | null;
+    imageURL?: string | null;
+    description?: string | null;
     attendeeUserIds: string[];
-    maxAttendees?: number;
+    maxAttendees?: number | null;
     isPublic: boolean;
+    costPerSeat?: number | null;
+    location?: EmbeddedLocation | null;
+    attendees?: EmbeddedAttendee[];
+    food?: FoodItem[];
   };
   gatheringId: string;
 }
 
 export default function GatheringSharePage({ gathering, gatheringId }: GatheringSharePageProps) {
-  const [redirecting, setRedirecting] = useState(true);
-  const deepLinkURL = `thecommonloaf://gathering/${gatheringId}`;
+  const router = useRouter();
+  const startDate = new Date(gathering.start);
 
-  useEffect(() => {
-    // Detect if user is on iOS
-    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-    
-    // On iOS, try to redirect to deep link immediately
-    if (isIOS) {
-      // Try to open the app
-      window.location.href = deepLinkURL;
-      
-      // Fallback: if app doesn't open within 1 second, show the page
-      const timer = setTimeout(() => {
-        setRedirecting(false);
-      }, 1000);
-      
-      return () => clearTimeout(timer);
-    } else {
-      // On other platforms, show the page with a link
-      setRedirecting(false);
-    }
-  }, [deepLinkURL]);
+  const spotsLeft =
+    gathering.maxAttendees
+      ? Math.max(0, gathering.maxAttendees - gathering.attendeeUserIds.length)
+      : null;
+  const isFull =
+    gathering.maxAttendees != null
+      ? gathering.attendeeUserIds.length >= gathering.maxAttendees
+      : false;
 
-  if (redirecting) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Opening in Common Loaf app...</p>
-        </div>
-      </div>
-    );
-  }
+  const sortedFood = [...(gathering.food || [])].sort((a, b) => a.order - b.order);
+
+  const handleBookSeat = () => {
+    router.push(`/?next=/gathering/${gatheringId}`);
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-xl shadow-lg overflow-hidden">
-        {/* Image */}
-        {gathering.imageURL && (
-          <div className="w-full aspect-video relative">
-            <img
-              src={gathering.imageURL}
-              alt={gathering.title}
-              className="w-full h-full object-cover"
-            />
-          </div>
-        )}
-        
-        {/* Content */}
-        <div className="p-6 space-y-4">
-          <h1 className="text-2xl font-bold text-gray-900">{gathering.title}</h1>
-          
-          {gathering.description && (
-            <p className="text-gray-600">{gathering.description}</p>
-          )}
-          
-          <div className="flex items-center gap-2 text-gray-600">
-            <span>📅</span>
-            <span>{formatDate(gathering.start)}</span>
-          </div>
-          
-          {/* Open in App Button */}
-          <a
-            href={deepLinkURL}
-            className="block w-full mt-6 py-3 px-6 bg-blue-600 text-white text-center rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-          >
-            Open in Common Loaf App
-          </a>
-          
-          {/* Fallback message */}
-          <p className="text-sm text-gray-500 text-center mt-4">
-            Don't have the app?{" "}
-            <a href="https://apps.apple.com/us/app/common-loaf/id6755270642" className="text-blue-600 underline">
-              Download from the App Store
-            </a>
-          </p>
+    <div className="min-h-screen bg-[var(--color-secondary-background)] flex flex-col">
+      {/* Hero image */}
+      {gathering.imageURL && (
+        <div className="w-full aspect-video">
+          <img
+            src={gathering.imageURL}
+            alt={gathering.title}
+            className="w-full h-full object-cover"
+          />
         </div>
+      )}
+
+      {/* Scrollable content with padding for sticky bar */}
+      <div className="flex-1 pb-28">
+        <div className="p-5 space-y-5">
+          {/* Title */}
+          <h1 className="text-3xl font-bold text-white leading-tight">{gathering.title}</h1>
+
+          {/* Date */}
+          <div className="flex items-center gap-3 text-gray-300">
+            <span className="text-xl">📅</span>
+            <span className="text-base">{formatDate(startDate)}</span>
+          </div>
+
+          {/* Location — neighborhood only for privacy */}
+          {gathering.location?.neighborhood && (
+            <div className="flex items-center gap-3 text-gray-300">
+              <span className="text-xl">📍</span>
+              <span className="text-base">{gathering.location.neighborhood}</span>
+            </div>
+          )}
+
+          {/* Spots + cost pills */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {spotsLeft !== null && (
+              <span
+                className={`px-3 py-1.5 rounded-full text-sm font-medium ${
+                  isFull ? "bg-red-900/60 text-red-200" : "bg-green-900/60 text-green-200"
+                }`}
+              >
+                {isFull ? "Full" : `${spotsLeft} seats left`}
+              </span>
+            )}
+            {gathering.maxAttendees == null && (
+              <span className="px-3 py-1.5 rounded-full text-sm font-medium bg-green-900/60 text-green-200">
+                Open seats
+              </span>
+            )}
+            {gathering.costPerSeat != null && gathering.costPerSeat > 0 && (
+              <span className="px-3 py-1.5 rounded-full text-sm font-medium bg-slate-700/60 text-gray-200">
+                ${gathering.costPerSeat.toFixed(2)} per seat
+              </span>
+            )}
+            {gathering.costPerSeat === 0 && (
+              <span className="px-3 py-1.5 rounded-full text-sm font-medium bg-slate-700/60 text-gray-200">
+                Free
+              </span>
+            )}
+          </div>
+
+          {/* Description */}
+          {gathering.description && (
+            <p className="text-gray-300 text-base leading-relaxed">{gathering.description}</p>
+          )}
+
+          <div className="h-px bg-white/10" />
+
+          {/* Menu */}
+          {sortedFood.length > 0 && (
+            <div className="space-y-3">
+              <h2 className="text-lg font-semibold text-white">Menu</h2>
+              <div className="space-y-2">
+                {sortedFood.map((item, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <span className="px-2 py-0.5 rounded text-xs font-medium bg-slate-700/70 text-gray-300 shrink-0">
+                      {item.type}
+                    </span>
+                    <span className="text-gray-200 text-base">{item.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {sortedFood.length > 0 && (gathering.attendees?.length ?? 0) > 0 && (
+            <div className="h-px bg-white/10" />
+          )}
+
+          {/* Attendees */}
+          {(gathering.attendees?.length ?? 0) > 0 && (
+            <div className="space-y-3">
+              <h2 className="text-lg font-semibold text-white">
+                {gathering.attendees!.length}{" "}
+                {gathering.attendees!.length === 1 ? "Guest" : "Guests"}
+              </h2>
+              <div className="flex gap-2 flex-wrap">
+                {gathering.attendees!.map((attendee) => {
+                  const initials =
+                    `${attendee.firstName[0] || ""}${attendee.lastName[0] || ""}`.toUpperCase() ||
+                    "?";
+                  return (
+                    <div
+                      key={attendee.id}
+                      className="w-11 h-11 rounded-full bg-slate-700/70 flex items-center justify-center text-[var(--color-warm-apricot)] text-sm font-semibold"
+                      title={`${attendee.firstName} ${attendee.lastName}`}
+                    >
+                      {initials}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Sticky bottom CTA */}
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-[var(--color-secondary-background)] border-t border-white/10">
+        {!gathering.isPublic ? (
+          <p className="w-full py-3 text-center text-gray-400 text-sm">
+            This is a private event.
+          </p>
+        ) : isFull ? (
+          <button
+            disabled
+            className="w-full py-4 rounded-xl font-semibold text-white bg-[var(--color-primary)] opacity-40 cursor-not-allowed"
+          >
+            Event is Full
+          </button>
+        ) : (
+          <button
+            onClick={handleBookSeat}
+            className="w-full py-4 rounded-xl font-semibold text-white bg-[var(--color-primary)]"
+          >
+            Book a Seat
+          </button>
+        )}
       </div>
     </div>
   );
 }
-

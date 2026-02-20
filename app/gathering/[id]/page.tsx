@@ -33,18 +33,21 @@ async function getGatheringData(id: string) {
     const data = { id: gatheringDoc.id, ...gatheringDoc.data() };
     const gathering = gatheringFromFirestore(data as any);
     
-    // Return gathering in the format expected by GatheringSharePage
+    // Return gathering with dates as ISO strings (Next.js can't serialize Date objects server→client)
     return {
       id: gathering.id,
       title: gathering.title,
-      start: gathering.start,
-      end: gathering.end || undefined,
-      imageURL: gathering.imageURL || undefined,
-      description: gathering.description || undefined,
-      locationId: gathering.locationId || undefined,
+      start: gathering.start.toISOString(),
+      end: gathering.end?.toISOString() || null,
+      imageURL: gathering.imageURL || null,
+      description: gathering.description || null,
       attendeeUserIds: gathering.attendeeUserIds || [],
-      maxAttendees: gathering.maxAttendees || undefined,
+      maxAttendees: gathering.maxAttendees || null,
       isPublic: gathering.isPublic ?? true,
+      costPerSeat: gathering.costPerSeat ?? null,
+      location: gathering.location || null,
+      attendees: gathering.attendees || [],
+      food: gathering.food || [],
     };
   } catch (error) {
     console.error("Error fetching gathering:", error);
@@ -64,17 +67,18 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     };
   }
 
-  // Format date for description
+  // Format date for description (gathering.start is now an ISO string)
   const dateFormatter = new Intl.DateTimeFormat("en-US", {
     dateStyle: "medium",
     timeStyle: "short",
   });
-  const dateString = dateFormatter.format(gathering.start);
+  const dateString = dateFormatter.format(new Date(gathering.start));
 
-  // Create description
-  const description = gathering.description 
-    ? `${gathering.description}\n\n📅 ${dateString}`
-    : `Join us at ${gathering.title} on ${dateString}`;
+  // Create description (include neighborhood for rich iMessage previews)
+  const neighborhoodPart = gathering.location?.neighborhood ? ` in ${gathering.location.neighborhood}` : "";
+  const description = gathering.description
+    ? `${gathering.description} · ${dateString}${neighborhoodPart}`
+    : `Join us for ${gathering.title}${neighborhoodPart} · ${dateString}`;
 
   // Get image URL (use gathering image if available, otherwise fallback)
   const imageURL = gathering.imageURL || "https://the-common-loaf.web.app/commonloaf-logo.png";
@@ -111,13 +115,9 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
       description: description,
       images: [imageURL],
     },
-    // Apple / Messages meta tags
     appleWebApp: {
       capable: true,
       statusBarStyle: "default",
-    },
-    other: {
-      "apple-itunes-app": `app-argument=thecommonloaf://gathering/${id}`,
     },
   };
 }

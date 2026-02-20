@@ -3,6 +3,26 @@ export interface MenuItem {
   recipeId: string;
 }
 
+export interface FoodItem {
+  name: string;
+  order: number;
+  recipeId: string;
+  type: string;
+}
+
+export interface EmbeddedAttendee {
+  id: string;
+  firstName: string;
+  lastName: string;
+  phoneNumber: string;
+}
+
+export interface EmbeddedLocation {
+  address: string;
+  name: string;
+  neighborhood: string;
+}
+
 export interface WaitlistUser {
   id: string;
   userId: string;
@@ -16,8 +36,11 @@ export interface Gathering {
   start: Date;
   end?: Date;
   locationId?: string;
+  location?: EmbeddedLocation;
   description?: string;
   attendeeUserIds: string[];
+  attendees?: EmbeddedAttendee[];
+  food?: FoodItem[];
   waitlist: WaitlistUser[];
   maxAttendees?: number;
   active: boolean;
@@ -34,8 +57,11 @@ export interface GatheringData {
   start: any; // Firestore Timestamp
   end?: any; // Firestore Timestamp
   locationId?: string;
+  location?: EmbeddedLocation;
   description?: string;
   attendeeUserIds: string[];
+  attendees?: EmbeddedAttendee[];
+  food?: FoodItem[];
   waitlist: WaitlistUserData[];
   maxAttendees?: number;
   active: boolean;
@@ -60,8 +86,11 @@ export function gatheringFromFirestore(data: GatheringData): Gathering {
     start: data.start?.toDate() || new Date(),
     end: data.end?.toDate(),
     locationId: data.locationId,
+    location: data.location,
     description: data.description,
     attendeeUserIds: data.attendeeUserIds || [],
+    attendees: data.attendees || [],
+    food: data.food || [],
     waitlist: (data.waitlist || []).map((w) => ({
       id: w.id,
       userId: w.userId,
