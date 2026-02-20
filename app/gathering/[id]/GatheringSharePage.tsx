@@ -174,8 +174,8 @@ export default function GatheringSharePage({ gathering, gatheringId, hostFirstNa
         </div>
       )}
 
-      {/* Scrollable content with padding for sticky bar */}
-      <div className="flex-1 pb-28">
+      {/* Scrollable content — extra bottom padding only when sticky bar is visible */}
+      <div className={`flex-1 ${bookedUser ? "pb-10" : "pb-28"}`}>
         <div className="p-5 space-y-5">
           {/* Title */}
           <h1 className="text-3xl font-bold text-white leading-tight">{gathering.title}</h1>
@@ -275,28 +275,33 @@ export default function GatheringSharePage({ gathering, gatheringId, hostFirstNa
               </div>
             </div>
           )}
+
+          {/* Registered confirmation + cancel — only in scroll area, no footer */}
+          {bookedUser && (
+            <div className="pt-2 space-y-3">
+              <div className="h-px bg-white/10" />
+              <p className="text-center text-[var(--color-warm-apricot)] font-medium py-1">
+                You're registered, {bookedUser.firstName}!
+              </p>
+              <button
+                onClick={handleCancel}
+                disabled={cancelLoading}
+                className="w-full py-4 rounded-xl font-semibold border border-red-900/50 bg-red-950/30 text-red-400 disabled:opacity-40"
+              >
+                {cancelLoading ? "Cancelling…" : "Cancel my reservation"}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Sticky bottom CTA */}
+      {/* Sticky bottom CTA — hidden when user is already booked */}
+      {!bookedUser && (
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-[var(--color-secondary-background)] border-t border-white/10">
         {!gathering.isPublic ? (
           <p className="w-full py-3 text-center text-gray-400 text-sm">
             This is a private event.
           </p>
-        ) : bookedUser ? (
-          <div className="space-y-1">
-            <p className="w-full py-2 text-center text-[var(--color-warm-apricot)] font-medium">
-              You're registered, {bookedUser.firstName}!
-            </p>
-            <button
-              onClick={handleCancel}
-              disabled={cancelLoading}
-              className="w-full py-1 text-sm text-center text-gray-500 disabled:opacity-40"
-            >
-              {cancelLoading ? "Cancelling…" : "Cancel my spot"}
-            </button>
-          </div>
         ) : isFull ? (
           <button
             disabled
@@ -329,6 +334,7 @@ export default function GatheringSharePage({ gathering, gatheringId, hostFirstNa
           </button>
         )}
       </div>
+      )}
 
       {/* Booking modal */}
       {showModal && (
