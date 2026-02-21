@@ -9,8 +9,8 @@
   
   /* Background colors */
   --color-background: #ffffff;
-  --color-secondary-background: #0E2E33;
-  --color-tertiary-background: #0A1C20;
+  --color-secondary-background: #f2f2f7;
+  --color-tertiary-background: #e5e5ea;
   
   /* Text colors */
   --color-text: #000000;
@@ -30,8 +30,8 @@
     --color-warm-apricot: #FFB15E;
     
     --color-background: #000000;
-    --color-secondary-background: #0E2E33;
-    --color-tertiary-background: #0A1C20;
+    --color-secondary-background: #1c1c1e;
+    --color-tertiary-background: #2c2c2e;
     
     --color-text: #ffffff;
     --color-secondary-text: #999999;

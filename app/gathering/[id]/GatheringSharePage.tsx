@@ -156,6 +156,16 @@ export default function GatheringSharePage({ gathering, gatheringId, hostFirstNa
     setShowGoodbye(true);
   };
 
+  // Floating + button action — mirrors the sticky CTA logic
+  const handleFloatingPlus = () => {
+    if (bookedUser || !gathering.isPublic || isFull) return;
+    if (storedUser) {
+      handleAutoBook();
+    } else {
+      setShowModal(true);
+    }
+  };
+
   // After goodbye overlay: navigate to gatherings list
   useEffect(() => {
     if (!showGoodbye) return;
@@ -165,6 +175,19 @@ export default function GatheringSharePage({ gathering, gatheringId, hostFirstNa
 
   return (
     <div className="min-h-screen bg-[var(--color-secondary-background)] flex flex-col">
+
+      {/* Floating + button — top-right, always visible while scrolling */}
+      {!bookedUser && gathering.isPublic && !isFull && (
+        <button
+          onClick={handleFloatingPlus}
+          disabled={autoBookLoading}
+          aria-label="Book a seat"
+          className="fixed top-4 right-4 z-40 w-12 h-12 rounded-full bg-[var(--color-primary)] text-white text-2xl font-light flex items-center justify-center shadow-lg disabled:opacity-50"
+        >
+          +
+        </button>
+      )}
+
       {/* Hero image — padded with rounded corners */}
       {gathering.imageURL && (
         <div className="px-5 pt-5">
@@ -182,19 +205,19 @@ export default function GatheringSharePage({ gathering, gatheringId, hostFirstNa
       <div className={`flex-1 ${bookedUser ? "pb-10" : "pb-28"}`}>
         <div className="p-5 space-y-5">
           {/* Title */}
-          <h1 className="text-3xl font-bold text-white leading-tight">{gathering.title}</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white leading-tight">{gathering.title}</h1>
 
           {/* Date */}
-          <div className="flex items-center gap-3 text-gray-300">
+          <div className="flex items-center gap-3 text-gray-600 dark:text-gray-300">
             {/* Dynamic calendar badge */}
-            <div className="flex flex-col items-center w-10 rounded-lg overflow-hidden border border-white/15 shrink-0">
+            <div className="flex flex-col items-center w-10 rounded-lg overflow-hidden border border-gray-300 dark:border-white/15 shrink-0">
               <div className="w-full bg-red-600 text-center py-0.5">
                 <span className="text-[9px] font-bold text-white tracking-wider">
                   {startDate.toLocaleDateString("en-US", { month: "short" }).toUpperCase()}
                 </span>
               </div>
-              <div className="bg-white/10 w-full text-center py-1">
-                <span className="text-base font-bold text-white leading-none">
+              <div className="bg-gray-100 dark:bg-white/10 w-full text-center py-1">
+                <span className="text-base font-bold text-gray-900 dark:text-white leading-none">
                   {startDate.getDate()}
                 </span>
               </div>
@@ -204,7 +227,7 @@ export default function GatheringSharePage({ gathering, gatheringId, hostFirstNa
 
           {/* Location — neighborhood only for privacy */}
           {gathering.location?.neighborhood && (
-            <div className="flex items-center gap-3 text-gray-300">
+            <div className="flex items-center gap-3 text-gray-600 dark:text-gray-300">
               <span className="text-xl">📍</span>
               <span className="text-base">{gathering.location.neighborhood}</span>
             </div>
@@ -215,24 +238,26 @@ export default function GatheringSharePage({ gathering, gatheringId, hostFirstNa
             {spotsLeft !== null && (
               <span
                 className={`px-3 py-1.5 rounded-full text-sm font-medium ${
-                  isFull ? "bg-red-900/60 text-red-200" : "bg-green-900/60 text-green-200"
+                  isFull
+                    ? "bg-red-100 text-red-700 dark:bg-red-900/60 dark:text-red-200"
+                    : "bg-green-100 text-green-700 dark:bg-green-900/60 dark:text-green-200"
                 }`}
               >
                 {isFull ? "Full" : `${spotsLeft} seats left`}
               </span>
             )}
             {gathering.maxAttendees == null && (
-              <span className="px-3 py-1.5 rounded-full text-sm font-medium bg-green-900/60 text-green-200">
+              <span className="px-3 py-1.5 rounded-full text-sm font-medium bg-green-100 text-green-700 dark:bg-green-900/60 dark:text-green-200">
                 Open seats
               </span>
             )}
             {gathering.costPerSeat != null && gathering.costPerSeat > 0 && (
-              <span className="px-3 py-1.5 rounded-full text-sm font-medium bg-slate-700/60 text-gray-200">
+              <span className="px-3 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-700 dark:bg-slate-700/60 dark:text-gray-200">
                 ${gathering.costPerSeat.toFixed(2)} per seat
               </span>
             )}
             {gathering.costPerSeat === 0 && (
-              <span className="px-3 py-1.5 rounded-full text-sm font-medium bg-slate-700/60 text-gray-200">
+              <span className="px-3 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-700 dark:bg-slate-700/60 dark:text-gray-200">
                 Free
               </span>
             )}
@@ -240,22 +265,46 @@ export default function GatheringSharePage({ gathering, gatheringId, hostFirstNa
 
           {/* Description */}
           {gathering.description && (
-            <p className="text-gray-300 text-base leading-relaxed">{gathering.description}</p>
+            <p className="text-gray-600 dark:text-gray-300 text-base leading-relaxed">{gathering.description}</p>
           )}
 
-          <div className="h-px bg-white/10" />
+          <div className="h-px bg-gray-200 dark:bg-white/10" />
+
+          {/* Guests — shown above the menu */}
+          {localAttendees.length > 0 && (
+            <div className="space-y-3">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                {localAttendees.length}{" "}
+                {localAttendees.length === 1 ? "Guest" : "Guests"}
+              </h2>
+              <div className="flex gap-2 flex-wrap">
+                {localAttendees.map((attendee) => (
+                  <span
+                    key={attendee.id}
+                    className="px-3 py-1.5 rounded-full bg-gray-100 dark:bg-slate-700/60 text-gray-700 dark:text-gray-200 text-sm"
+                  >
+                    {attendee.firstName} {attendee.lastName[0]?.toUpperCase()}.
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {localAttendees.length > 0 && sortedFood.length > 0 && (
+            <div className="h-px bg-gray-200 dark:bg-white/10" />
+          )}
 
           {/* Menu */}
           {sortedFood.length > 0 && (
             <div className="space-y-4">
-              <h2 className="text-lg font-semibold text-white">Menu</h2>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Menu</h2>
               <div className="space-y-5">
                 {sortedFood.map((item, i) => {
                   const recipe = recipes[item.recipeId];
                   return (
                     <div key={i} className="space-y-2">
                       {recipe?.imageURL && (
-                        <div className="w-full aspect-video rounded-xl overflow-hidden">
+                        <div className="w-full aspect-video rounded-2xl overflow-hidden">
                           <img
                             src={recipe.imageURL}
                             alt={item.name}
@@ -264,9 +313,9 @@ export default function GatheringSharePage({ gathering, gatheringId, hostFirstNa
                         </div>
                       )}
                       <div>
-                        <p className="text-gray-100 font-semibold text-base">{item.name}</p>
+                        <p className="text-gray-900 dark:text-gray-100 font-semibold text-base">{item.name}</p>
                         {recipe?.description && (
-                          <p className="text-gray-400 text-sm mt-0.5 leading-relaxed">{recipe.description}</p>
+                          <p className="text-gray-500 dark:text-gray-400 text-sm mt-0.5 leading-relaxed">{recipe.description}</p>
                         )}
                       </div>
                     </div>
@@ -276,38 +325,14 @@ export default function GatheringSharePage({ gathering, gatheringId, hostFirstNa
             </div>
           )}
 
-          {sortedFood.length > 0 && localAttendees.length > 0 && (
-            <div className="h-px bg-white/10" />
-          )}
-
-          {/* Attendees */}
-          {localAttendees.length > 0 && (
-            <div className="space-y-3">
-              <h2 className="text-lg font-semibold text-white">
-                {localAttendees.length}{" "}
-                {localAttendees.length === 1 ? "Guest" : "Guests"}
-              </h2>
-              <div className="flex gap-2 flex-wrap">
-                {localAttendees.map((attendee) => (
-                  <span
-                    key={attendee.id}
-                    className="px-3 py-1.5 rounded-full bg-slate-700/60 text-gray-200 text-sm"
-                  >
-                    {attendee.firstName} {attendee.lastName[0]?.toUpperCase()}.
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* Cancel reservation — only shown when booked, no footer */}
           {bookedUser && (
             <div className="pt-2 space-y-3">
-              <div className="h-px bg-white/10" />
+              <div className="h-px bg-gray-200 dark:bg-white/10" />
               <button
                 onClick={handleCancel}
                 disabled={cancelLoading}
-                className="w-full py-4 rounded-xl font-semibold border border-red-900/50 bg-red-950/30 text-red-400 disabled:opacity-40"
+                className="w-full py-4 rounded-xl font-semibold border border-red-300 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 disabled:opacity-40"
               >
                 {cancelLoading ? "Cancelling…" : "Cancel my reservation"}
               </button>
@@ -318,9 +343,9 @@ export default function GatheringSharePage({ gathering, gatheringId, hostFirstNa
 
       {/* Sticky bottom CTA — hidden when user is already booked */}
       {!bookedUser && (
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-[var(--color-secondary-background)] border-t border-white/10">
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-[var(--color-secondary-background)] border-t border-gray-200 dark:border-white/10">
         {!gathering.isPublic ? (
-          <p className="w-full py-3 text-center text-gray-400 text-sm">
+          <p className="w-full py-3 text-center text-gray-500 dark:text-gray-400 text-sm">
             This is a private event.
           </p>
         ) : isFull ? (
@@ -341,7 +366,7 @@ export default function GatheringSharePage({ gathering, gatheringId, hostFirstNa
             </button>
             <button
               onClick={handleForgetUser}
-              className="w-full py-1 text-sm text-center text-gray-500"
+              className="w-full py-1 text-sm text-center text-gray-500 dark:text-gray-500"
             >
               Not you?
             </button>
