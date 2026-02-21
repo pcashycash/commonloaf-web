@@ -8,6 +8,13 @@ export interface FoodItem {
   order: number;
   recipeId: string;
   type: string;
+  country?: string;
+}
+
+export interface GameItem {
+  id: string;
+  name: string;
+  order: number;
 }
 
 export interface EmbeddedAttendee {
@@ -41,6 +48,7 @@ export interface Gathering {
   attendeeUserIds: string[];
   attendees?: EmbeddedAttendee[];
   food?: FoodItem[];
+  games?: GameItem[];
   waitlist: WaitlistUser[];
   maxAttendees?: number;
   active: boolean;
@@ -49,6 +57,10 @@ export interface Gathering {
   imageURL?: string;
   costPerSeat?: number;
   hostUserId?: string;
+  invitedUsers?: string[];
+  groupIds?: string[];
+  allowGatheringShare?: boolean;
+  allowMenuItemAdding?: boolean;
 }
 
 export interface GatheringData {
@@ -62,6 +74,7 @@ export interface GatheringData {
   attendeeUserIds: string[];
   attendees?: EmbeddedAttendee[];
   food?: FoodItem[];
+  games?: GameItem[];
   waitlist: WaitlistUserData[];
   maxAttendees?: number;
   active: boolean;
@@ -70,6 +83,10 @@ export interface GatheringData {
   imageURL?: string;
   costPerSeat?: number;
   hostUserId?: string;
+  invitedUsers?: string[];
+  groupIds?: string[];
+  allowGatheringShare?: boolean;
+  allowMenuItemAdding?: boolean;
 }
 
 export interface WaitlistUserData {
@@ -91,6 +108,7 @@ export function gatheringFromFirestore(data: GatheringData): Gathering {
     attendeeUserIds: data.attendeeUserIds || [],
     attendees: data.attendees || [],
     food: data.food || [],
+    games: data.games || [],
     waitlist: (data.waitlist || []).map((w) => ({
       id: w.id,
       userId: w.userId,
@@ -104,6 +122,10 @@ export function gatheringFromFirestore(data: GatheringData): Gathering {
     imageURL: data.imageURL,
     costPerSeat: data.costPerSeat,
     hostUserId: data.hostUserId,
+    invitedUsers: data.invitedUsers || [],
+    groupIds: data.groupIds || [],
+    allowGatheringShare: data.allowGatheringShare,
+    allowMenuItemAdding: data.allowMenuItemAdding,
   };
 }
 
@@ -129,6 +151,10 @@ export function gatheringToFirestore(gathering: Gathering): GatheringData {
     imageURL: gathering.imageURL,
     costPerSeat: gathering.costPerSeat,
     hostUserId: gathering.hostUserId,
+    invitedUsers: gathering.invitedUsers,
+    groupIds: gathering.groupIds,
+    allowGatheringShare: gathering.allowGatheringShare,
+    allowMenuItemAdding: gathering.allowMenuItemAdding,
   };
 }
 

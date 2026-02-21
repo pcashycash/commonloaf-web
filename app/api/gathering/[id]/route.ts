@@ -33,17 +33,29 @@ export async function GET(
     const data = { id: gatheringDoc.id, ...gatheringDoc.data() };
     const gathering = gatheringFromFirestore(data as any);
     
-    // Convert to JSON-serializable format
+    // Convert to JSON-serializable format.
+    // Phone numbers are stripped from attendees before sending to clients.
     const gatheringJSON = {
       id: gathering.id,
       title: gathering.title,
       start: gathering.start.toISOString(),
       end: gathering.end?.toISOString() || null,
-      imageURL: gathering.imageURL,
-      description: gathering.description,
-      locationId: gathering.locationId,
+      imageURL: gathering.imageURL || null,
+      description: gathering.description || null,
+      location: gathering.location || null,
+      locationId: gathering.locationId || null,
       attendeeUserIds: gathering.attendeeUserIds || [],
-      maxAttendees: gathering.maxAttendees,
+      attendees: (gathering.attendees || []).map((a) => ({
+        id: a.id,
+        firstName: a.firstName,
+        lastName: a.lastName,
+      })),
+      food: (gathering.food || []).sort((a, b) => a.order - b.order),
+      games: (gathering.games || []).sort((a, b) => a.order - b.order),
+      maxAttendees: gathering.maxAttendees || null,
+      hostUserId: gathering.hostUserId || null,
+      invitedUsers: gathering.invitedUsers || [],
+      allowGatheringShare: gathering.allowGatheringShare ?? true,
       isPublic: gathering.isPublic ?? true,
     };
 
