@@ -3,6 +3,12 @@
 import { useRouter } from "next/navigation";
 import { dayLabel, timeLabel } from "@/lib/utils/dateFormatter";
 
+interface AttendeePreview {
+  id: string;
+  firstName: string;
+  lastName: string;
+}
+
 interface GatheringPreview {
   id: string;
   title: string;
@@ -11,6 +17,7 @@ interface GatheringPreview {
   attendeeCount: number;
   maxAttendees: number | null;
   neighborhood: string | null;
+  attendees: AttendeePreview[];
 }
 
 export default function GatheringsListView({ gatherings }: { gatherings: GatheringPreview[] }) {
@@ -81,6 +88,22 @@ export default function GatheringsListView({ gatherings }: { gatherings: Gatheri
                   ? `${spotsLeft} seats left`
                   : "Open seats"}
               </p>
+              {g.attendees.length > 0 && (
+                <div className="flex gap-2 flex-wrap pt-1">
+                  {[...g.attendees]
+                    .sort((a, b) =>
+                      `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`)
+                    )
+                    .map((attendee) => (
+                      <span
+                        key={attendee.id}
+                        className="px-3 py-1.5 rounded-full bg-slate-700/60 text-gray-200 text-sm"
+                      >
+                        {attendee.firstName} {attendee.lastName[0]?.toUpperCase()}.
+                      </span>
+                    ))}
+                </div>
+              )}
             </div>
           </div>
         );

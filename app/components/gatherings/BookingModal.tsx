@@ -7,12 +7,13 @@ import type { User } from "@/lib/models/User";
 type Step = "phone" | "new_user";
 
 interface BookingModalProps {
-  gatheringId: string;
+  gatheringId?: string;
+  loginOnly?: boolean;
   onClose: () => void;
   onSuccess: (user: User) => void;
 }
 
-export default function BookingModal({ gatheringId, onClose, onSuccess }: BookingModalProps) {
+export default function BookingModal({ gatheringId, loginOnly = false, onClose, onSuccess }: BookingModalProps) {
   const [step, setStep] = useState<Step>("phone");
   const [phone, setPhone] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -42,12 +43,12 @@ export default function BookingModal({ gatheringId, onClose, onSuccess }: Bookin
     try {
       const user = await firestoreService.findUserByPhone(phone);
       if (user) {
-        // Auto-book — skip confirmation step
-        try {
-          await firestoreService.registerGuestForGathering(gatheringId, user);
-        } catch (bookErr: any) {
-          // Already registered is fine — still show success
-          if (bookErr.message !== "Already registered") throw bookErr;
+        if (!loginOnly && gatheringId) {
+          try {
+            await firestoreService.registerGuestForGathering(gatheringId, user);
+          } catch (bookErr: any) {
+            if (bookErr.message !== "Already registered") throw bookErr;
+          }
         }
         onSuccess(user);
         handleClose();
@@ -73,7 +74,9 @@ export default function BookingModal({ gatheringId, onClose, onSuccess }: Bookin
     setError(null);
     try {
       const newUser = await firestoreService.createGuestUser(firstName.trim(), lastName.trim(), phone);
-      await firestoreService.registerGuestForGathering(gatheringId, newUser);
+      if (!loginOnly && gatheringId) {
+        await firestoreService.registerGuestForGathering(gatheringId, newUser);
+      }
       onSuccess(newUser);
       handleClose();
     } catch (err: any) {
@@ -85,20 +88,32 @@ export default function BookingModal({ gatheringId, onClose, onSuccess }: Bookin
 
   return (
     <>
-      {/* Backdrop */}
+      {/* Backdrop — extends below viewport to cover behind keyboard */}
       <div
-        className="fixed inset-0 z-40 bg-black/60"
-        style={{ opacity: visible ? 1 : 0, transition: "opacity 300ms ease" }}
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: "-400px",
+          zIndex: 40,
+          background: "rgba(0,0,0,0.6)",
+          opacity: visible ? 1 : 0,
+          transition: "opacity 300ms ease",
+        }}
         onClick={handleClose}
       />
 
-      {/* Sheet */}
+      {/* Sheet — bottom offset extends background behind keyboard */}
       <div
-        className="fixed bottom-0 left-0 right-0 z-50 rounded-t-2xl bg-[var(--color-secondary-background)] px-5 pt-6 pb-10"
+        className="fixed inset-x-0 z-50 rounded-t-2xl bg-[var(--color-secondary-background)] px-5 pt-6"
         style={{
+          bottom: "-400px",
+          paddingBottom: "440px",
           transform: visible ? "translateY(0)" : "translateY(100%)",
           transition: "transform 300ms cubic-bezier(0.32, 0.72, 0, 1)",
         }}
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Drag handle */}
         <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-white/20" />
@@ -107,7 +122,9 @@ export default function BookingModal({ gatheringId, onClose, onSuccess }: Bookin
           <form onSubmit={handlePhoneSubmit} autoComplete="on" className="space-y-5">
             <div>
               <h2 className="text-2xl font-semibold text-white">What's your number?</h2>
-              <p className="mt-1 text-sm text-gray-400">We'll use this to reserve your spot.</p>
+              <p className="mt-1 text-sm text-gray-400">
+                {loginOnly ? "We'll use this to sign you in." : "We'll use this to reserve your spot."}
+              </p>
             </div>
 
             <input
@@ -133,7 +150,7 @@ export default function BookingModal({ gatheringId, onClose, onSuccess }: Bookin
                   : "bg-[var(--color-primary)] opacity-40 cursor-not-allowed"
               }`}
             >
-              {isLoading ? "Reserving your seat…" : "Continue"}
+              {isLoading ? (loginOnly ? "Signing in…" : "Reserving your seat…") : "Continue"}
             </button>
           </form>
         )}
@@ -174,7 +191,7 @@ export default function BookingModal({ gatheringId, onClose, onSuccess }: Bookin
                   : "bg-[var(--color-primary)] opacity-40 cursor-not-allowed"
               }`}
             >
-              {isLoading ? "Saving your spot…" : "Book my seat"}
+              {isLoading ? (loginOnly ? "Signing in…" : "Saving your spot…") : (loginOnly ? "Continue" : "Book my seat")}
             </button>
 
             <button

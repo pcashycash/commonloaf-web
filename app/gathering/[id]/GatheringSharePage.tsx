@@ -178,7 +178,7 @@ export default function GatheringSharePage({ gathering, gatheringId, hostFirstNa
     <div className="min-h-screen flex flex-col">
 
       {/* Header */}
-      <div className="sticky top-0 z-30 flex items-center gap-2 px-4 py-3 bg-[var(--color-secondary-background)] border-b border-gray-200 dark:border-white/10">
+      <div className="fixed top-0 left-0 right-0 z-30 flex items-center gap-2 px-4 py-3 bg-[var(--color-secondary-background)] border-b border-gray-200 dark:border-white/10">
         {/* See Other Events */}
         <button
           onClick={() => router.push("/gatherings")}
@@ -221,15 +221,15 @@ export default function GatheringSharePage({ gathering, gatheringId, hostFirstNa
               onClick={() => setShowModal(true)}
               className="px-3 py-1.5 rounded-lg text-sm font-medium text-white bg-[var(--color-primary)]"
             >
-              Login
+              Sign in
             </button>
           )}
         </div>
       </div>
 
 
-      {/* Scrollable content — extra bottom padding only when sticky bar is visible */}
-      <div className="flex-1 pb-10">
+      {/* Scrollable content */}
+      <div className="flex-1 pt-14 pb-10">
         <div className="p-5 space-y-5">
           {/* Title */}
           <h1 className="text-xl font-bold text-gray-900 dark:text-white leading-tight">{gathering.title}</h1>
@@ -356,9 +356,13 @@ export default function GatheringSharePage({ gathering, gatheringId, hostFirstNa
       {/* Booking modal */}
       {showModal && (
         <BookingModal
-          gatheringId={gatheringId}
+          loginOnly
           onClose={() => setShowModal(false)}
-          onSuccess={handleSuccess}
+          onSuccess={(user) => {
+            setStoredUser(user);
+            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(user)); } catch {}
+            setShowModal(false);
+          }}
         />
       )}
 

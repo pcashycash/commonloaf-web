@@ -48,6 +48,7 @@ async function getUpcomingPublicGatherings() {
         attendeeCount: g.attendeeUserIds.length,
         maxAttendees: g.maxAttendees || null,
         neighborhood: g.location?.neighborhood || null,
+        attendees: (g.attendees || []).map(({ id, firstName, lastName }) => ({ id, firstName, lastName })),
       };
     });
   } catch (error) {
@@ -69,12 +70,6 @@ export default async function GatheringsPage() {
           >
             Common Loaf
           </h1>
-          <a
-            href="/"
-            className="text-sm text-[var(--color-warm-apricot)] underline"
-          >
-            Sign in
-          </a>
         </div>
       </header>
 
