@@ -64,6 +64,7 @@ export async function GET(request: NextRequest) {
           id: a.id,
           firstName: a.firstName,
           lastName: a.lastName,
+          phoneNumber: a.phoneNumber || null,
         })),
         food: (g.food || []).sort((a, b) => a.order - b.order),
         games: (g.games || []).sort((a, b) => a.order - b.order),

@@ -71,11 +71,11 @@ export default function GatheringView() {
       // Find user's gatherings
       const userId = authService.currentUserId;
       if (userId) {
-        const myGatheringsList = upcoming.filter((g) => g.attendeeUserIds.includes(userId));
+        const myGatheringsList = upcoming.filter((g) => (g.attendees || []).some((a) => a.id === userId));
         setMyGatherings(myGatheringsList);
 
         // Load users for attendees
-        const allAttendeeIds = [...new Set(upcoming.flatMap((g) => g.attendeeUserIds))];
+        const allAttendeeIds = [...new Set(upcoming.flatMap((g) => (g.attendees || []).map((a) => a.id)))];
         if (allAttendeeIds.length > 0) {
           const users = await firestoreService.fetchUsers(allAttendeeIds);
           const usersMap: Record<string, User> = {};
@@ -100,7 +100,7 @@ export default function GatheringView() {
     );
     const userId = authService.currentUserId;
     if (userId) {
-      const isRegistered = updatedGathering.attendeeUserIds.includes(userId);
+      const isRegistered = (updatedGathering.attendees || []).some((a) => a.id === userId);
       setMyGatherings((prev) => {
         if (isRegistered) {
           const exists = prev.some((g) => g.id === updatedGathering.id);
@@ -339,16 +339,16 @@ function GatheringCard({
           </div>
         )}
 
-        {gathering.attendeeUserIds.length > 0 && (
+        {(gathering.attendees || []).length > 0 && (
           <div className="flex gap-2 overflow-x-auto">
-            {gathering.attendeeUserIds.map((userId) => {
-              const user = usersById[userId];
+            {(gathering.attendees || []).map((attendee) => {
+              const user = usersById[attendee.id];
               const initials = user
                 ? `${user.firstName[0] || ""}${user.lastName[0] || ""}`.toUpperCase() || "?"
-                : "?";
+                : `${attendee.firstName[0] || ""}${attendee.lastName[0] || ""}`.toUpperCase() || "?";
               return (
                 <div
-                  key={userId}
+                  key={attendee.id}
                   className="flex-shrink-0 w-10 h-10 rounded-full bg-[var(--color-secondary-background)] flex items-center justify-center text-[var(--color-warm-apricot)] text-xs font-medium"
                 >
                   {initials}

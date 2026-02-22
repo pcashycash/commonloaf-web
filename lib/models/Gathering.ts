@@ -166,13 +166,13 @@ export function spotsRemaining(gathering: Gathering): number {
   if (isUnlimited(gathering)) {
     return Number.MAX_SAFE_INTEGER;
   }
-  return Math.max(0, (gathering.maxAttendees || 0) - gathering.attendeeUserIds.length);
+  return Math.max(0, (gathering.maxAttendees || 0) - (gathering.attendees || []).length);
 }
 
 export function isFull(gathering: Gathering): boolean {
   if (isUnlimited(gathering)) {
     return false;
   }
-  return gathering.attendeeUserIds.length >= (gathering.maxAttendees || 0);
+  return (gathering.attendees || []).length >= (gathering.maxAttendees || 0);
 }
 

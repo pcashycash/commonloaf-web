@@ -48,7 +48,7 @@ export default function GatheringDetailView({
   const loadData = async () => {
     const userId = authService.currentUserId;
     if (userId) {
-      setIsRegistered(gathering.attendeeUserIds.includes(userId));
+      setIsRegistered((gathering.attendees || []).some((a) => a.id === userId));
     }
 
     // Build menu items
@@ -65,9 +65,9 @@ export default function GatheringDetailView({
       .filter((item): item is MenuItemDetail => item !== null);
     setMenuItems(items);
 
-    // Get attendee users
-    const attendees = gathering.attendeeUserIds
-      .map((userId) => usersById[userId])
+    // Get attendee users from embedded attendees data
+    const attendees = (gathering.attendees || [])
+      .map((a) => usersById[a.id])
       .filter((user): user is User => user !== undefined);
     setAttendeeUsers(attendees.sort((a, b) => a.firstName.localeCompare(b.firstName)));
   };
@@ -91,12 +91,12 @@ export default function GatheringDetailView({
         return;
       }
 
-      if (currentGathering.attendeeUserIds.includes(userId)) {
+      if ((currentGathering.attendees || []).some((a) => a.id === userId)) {
         setErrorMessage("You are already registered for this gathering.");
         return;
       }
 
-      if (currentGathering.maxAttendees && currentGathering.attendeeUserIds.length >= currentGathering.maxAttendees) {
+      if (currentGathering.maxAttendees && (currentGathering.attendees || []).length >= currentGathering.maxAttendees) {
         setErrorMessage("This gathering is now full.");
         setGathering(currentGathering);
         await loadData();
@@ -208,10 +208,10 @@ export default function GatheringDetailView({
           </div>
 
           {/* Attendees Section */}
-          {gathering.attendeeUserIds.length > 0 && (
+          {(gathering.attendees || []).length > 0 && (
             <div>
               <h2 className="text-lg font-semibold text-[var(--color-text)] mb-4">
-                Attendees ({gathering.attendeeUserIds.length})
+                Attendees ({(gathering.attendees || []).length})
               </h2>
               <div className="flex gap-2 overflow-x-auto pb-2">
                 {attendeeUsers.map((user) => {

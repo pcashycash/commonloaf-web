@@ -53,9 +53,9 @@ export async function POST(
     }
 
     const data = gatheringSnap.data();
-    const currentIds: string[] = data.attendeeUserIds || [];
+    const currentAttendees: any[] = data.attendees || [];
 
-    if (!currentIds.includes(userId)) {
+    if (!currentAttendees.some((a: any) => a.id === userId)) {
       return NextResponse.json({ success: true, message: "Not attending" });
     }
 

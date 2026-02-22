@@ -62,13 +62,13 @@ export async function POST(
     const userData = userDoc.data();
 
     const maxAttendees: number | undefined = gatheringData.maxAttendees;
-    const currentIds: string[] = gatheringData.attendeeUserIds || [];
+    const currentAttendees: any[] = gatheringData.attendees || [];
 
-    if (currentIds.includes(userId)) {
+    if (currentAttendees.some((a: any) => a.id === userId)) {
       return NextResponse.json({ success: true, message: "Already attending" });
     }
 
-    if (maxAttendees && currentIds.length >= maxAttendees) {
+    if (maxAttendees && currentAttendees.length >= maxAttendees) {
       return NextResponse.json({ error: "Gathering is full" }, { status: 409 });
     }
 
@@ -84,10 +84,10 @@ export async function POST(
       const freshSnap = await transaction.get(freshRef);
       if (!freshSnap.exists()) throw new Error("Gathering not found");
 
-      const freshIds: string[] = freshSnap.data().attendeeUserIds || [];
-      if (freshIds.includes(userId)) return; // Already added, no-op
+      const freshAttendees: any[] = freshSnap.data().attendees || [];
+      if (freshAttendees.some((a: any) => a.id === userId)) return; // Already added, no-op
 
-      if (maxAttendees && freshIds.length >= maxAttendees) {
+      if (maxAttendees && freshAttendees.length >= maxAttendees) {
         throw new Error("Gathering is full");
       }
 

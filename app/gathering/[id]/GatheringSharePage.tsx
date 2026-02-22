@@ -135,11 +135,6 @@ export default function GatheringSharePage({ gathering, gatheringId, hostFirstNa
     setAutoBookLoading(false);
   };
 
-  const handleForgetUser = () => {
-    localStorage.removeItem(STORAGE_KEY);
-    setStoredUser(null);
-  };
-
   const handleCancel = async () => {
     if (!bookedUser?.id || cancelLoading) return;
     setCancelLoading(true);
@@ -156,16 +151,6 @@ export default function GatheringSharePage({ gathering, gatheringId, hostFirstNa
     setShowGoodbye(true);
   };
 
-  // Floating + button action — mirrors the sticky CTA logic
-  const handleFloatingPlus = () => {
-    if (bookedUser || !gathering.isPublic || isFull) return;
-    if (storedUser) {
-      handleAutoBook();
-    } else {
-      setShowModal(true);
-    }
-  };
-
   // After goodbye overlay: navigate to gatherings list
   useEffect(() => {
     if (!showGoodbye) return;
@@ -174,50 +159,76 @@ export default function GatheringSharePage({ gathering, gatheringId, hostFirstNa
   }, [showGoodbye]);
 
   return (
-    <div className="min-h-screen bg-[var(--color-secondary-background)] flex flex-col">
+    <div className="min-h-screen flex flex-col">
 
-      {/* Floating + button — top-right, always visible while scrolling */}
-      {!bookedUser && gathering.isPublic && !isFull && (
+      {/* Header */}
+      <div className="sticky top-0 z-30 flex items-center gap-2 px-4 py-3 bg-white/80 dark:bg-black/80 backdrop-blur-sm border-b border-gray-200 dark:border-white/10">
+        {/* See Other Events */}
         <button
-          onClick={handleFloatingPlus}
-          disabled={autoBookLoading}
-          aria-label="Book a seat"
-          className="fixed top-4 right-4 z-40 w-12 h-12 rounded-full bg-[var(--color-primary)] text-white text-2xl font-light flex items-center justify-center shadow-lg disabled:opacity-50"
+          onClick={() => router.push("/gatherings")}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/15 transition-colors shrink-0"
         >
-          +
+          ← Events
         </button>
-      )}
 
-      {/* Hero image — padded with rounded corners */}
-      {gathering.imageURL && (
-        <div className="px-5 pt-5">
-          <div className="w-full aspect-video rounded-2xl overflow-hidden">
-            <img
-              src={gathering.imageURL}
-              alt={gathering.title}
-              className="w-full h-full object-cover"
-            />
-          </div>
+        {/* Open in App */}
+        <a
+          href={`commonloaf://gathering/${gatheringId}`}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/15 transition-colors shrink-0"
+        >
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" aria-hidden="true">
+            <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z" />
+          </svg>
+          Open in App
+        </a>
+
+        {/* Dynamic action button */}
+        <div className="ml-auto shrink-0">
+          {bookedUser ? (
+            <button
+              onClick={handleCancel}
+              disabled={cancelLoading}
+              className="px-3 py-1.5 rounded-lg text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 disabled:opacity-40 transition-colors"
+            >
+              {cancelLoading ? "Cancelling…" : "Cancel Reservation"}
+            </button>
+          ) : storedUser ? (
+            <button
+              onClick={handleAutoBook}
+              disabled={autoBookLoading}
+              className="px-3 py-1.5 rounded-lg text-sm font-medium text-white bg-[var(--color-primary)] disabled:opacity-50 transition-opacity"
+            >
+              {autoBookLoading ? "Booking…" : "Book a Seat"}
+            </button>
+          ) : (
+            <button
+              onClick={() => setShowModal(true)}
+              className="px-3 py-1.5 rounded-lg text-sm font-medium text-white bg-[var(--color-primary)]"
+            >
+              Login
+            </button>
+          )}
         </div>
-      )}
+      </div>
+
 
       {/* Scrollable content — extra bottom padding only when sticky bar is visible */}
-      <div className={`flex-1 ${bookedUser ? "pb-10" : "pb-28"}`}>
+      <div className="flex-1 pb-10">
         <div className="p-5 space-y-5">
           {/* Title */}
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white leading-tight">{gathering.title}</h1>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white leading-tight">{gathering.title}</h1>
 
           {/* Date */}
           <div className="flex items-center gap-3 text-gray-600 dark:text-gray-300">
             {/* Dynamic calendar badge */}
-            <div className="flex flex-col items-center w-10 rounded-lg overflow-hidden border border-gray-300 dark:border-white/15 shrink-0">
-              <div className="w-full bg-red-600 text-center py-0.5">
-                <span className="text-[9px] font-bold text-white tracking-wider">
+            <div className="flex flex-col items-center w-5 rounded overflow-hidden border border-gray-300 dark:border-white/15 shrink-0">
+              <div className="w-full bg-red-600 text-center py-px">
+                <span className="text-[5px] font-bold text-white tracking-wider">
                   {startDate.toLocaleDateString("en-US", { month: "short" }).toUpperCase()}
                 </span>
               </div>
-              <div className="bg-gray-100 dark:bg-white/10 w-full text-center py-1">
-                <span className="text-base font-bold text-gray-900 dark:text-white leading-none">
+              <div className="bg-gray-100 dark:bg-white/10 w-full text-center py-0.5">
+                <span className="text-[9px] font-bold text-gray-900 dark:text-white leading-none">
                   {startDate.getDate()}
                 </span>
               </div>
@@ -225,43 +236,18 @@ export default function GatheringSharePage({ gathering, gatheringId, hostFirstNa
             <span className="text-base">{formatDate(startDate)}</span>
           </div>
 
-          {/* Location — neighborhood only for privacy */}
-          {gathering.location?.neighborhood && (
+          {/* Location — full address for confirmed attendees, neighborhood for others */}
+          {(gathering.location?.address || gathering.location?.neighborhood) && (
             <div className="flex items-center gap-3 text-gray-600 dark:text-gray-300">
               <span className="text-xl">📍</span>
-              <span className="text-base">{gathering.location.neighborhood}</span>
+              <span className="text-base">
+                {bookedUser && gathering.location?.address
+                  ? gathering.location.address
+                  : gathering.location?.neighborhood}
+              </span>
             </div>
           )}
 
-          {/* Spots + cost pills */}
-          <div className="flex items-center gap-2 flex-wrap">
-            {spotsLeft !== null && (
-              <span
-                className={`px-3 py-1.5 rounded-full text-sm font-medium ${
-                  isFull
-                    ? "bg-red-100 text-red-700 dark:bg-red-900/60 dark:text-red-200"
-                    : "bg-green-100 text-green-700 dark:bg-green-900/60 dark:text-green-200"
-                }`}
-              >
-                {isFull ? "Full" : `${spotsLeft} seats left`}
-              </span>
-            )}
-            {gathering.maxAttendees == null && (
-              <span className="px-3 py-1.5 rounded-full text-sm font-medium bg-green-100 text-green-700 dark:bg-green-900/60 dark:text-green-200">
-                Open seats
-              </span>
-            )}
-            {gathering.costPerSeat != null && gathering.costPerSeat > 0 && (
-              <span className="px-3 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-700 dark:bg-slate-700/60 dark:text-gray-200">
-                ${gathering.costPerSeat.toFixed(2)} per seat
-              </span>
-            )}
-            {gathering.costPerSeat === 0 && (
-              <span className="px-3 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-700 dark:bg-slate-700/60 dark:text-gray-200">
-                Free
-              </span>
-            )}
-          </div>
 
           {/* Description */}
           {gathering.description && (
@@ -270,25 +256,47 @@ export default function GatheringSharePage({ gathering, gatheringId, hostFirstNa
 
           <div className="h-px bg-gray-200 dark:bg-white/10" />
 
-          {/* Guests — shown above the menu */}
-          {localAttendees.length > 0 && (
-            <div className="space-y-3">
+          {/* Guests */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 flex-wrap">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                 {localAttendees.length}{" "}
                 {localAttendees.length === 1 ? "Guest" : "Guests"}
               </h2>
-              <div className="flex gap-2 flex-wrap">
-                {localAttendees.map((attendee) => (
-                  <span
-                    key={attendee.id}
-                    className="px-3 py-1.5 rounded-full bg-gray-100 dark:bg-slate-700/60 text-gray-700 dark:text-gray-200 text-sm"
-                  >
-                    {attendee.firstName} {attendee.lastName[0]?.toUpperCase()}.
-                  </span>
-                ))}
-              </div>
+              {spotsLeft !== null && (
+                <span
+                  className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                    isFull
+                      ? "bg-red-100 text-red-700 dark:bg-red-900/60 dark:text-red-200"
+                      : "bg-green-100 text-green-700 dark:bg-green-900/60 dark:text-green-200"
+                  }`}
+                >
+                  {isFull ? "Full" : `${spotsLeft} seats left`}
+                </span>
+              )}
+              {gathering.maxAttendees == null && (
+                <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/60 dark:text-green-200">
+                  Open seats
+                </span>
+              )}
             </div>
-          )}
+            {localAttendees.length > 0 && (
+              <div className="flex gap-2 flex-wrap">
+                {[...localAttendees]
+                  .sort((a, b) =>
+                    `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`)
+                  )
+                  .map((attendee) => (
+                    <span
+                      key={attendee.id}
+                      className="px-3 py-1.5 rounded-full bg-gray-100 dark:bg-slate-700/60 text-gray-700 dark:text-gray-200 text-sm"
+                    >
+                      {attendee.firstName} {attendee.lastName[0]?.toUpperCase()}.
+                    </span>
+                  ))}
+              </div>
+            )}
+          </div>
 
           {localAttendees.length > 0 && sortedFood.length > 0 && (
             <div className="h-px bg-gray-200 dark:bg-white/10" />
@@ -325,62 +333,9 @@ export default function GatheringSharePage({ gathering, gatheringId, hostFirstNa
             </div>
           )}
 
-          {/* Cancel reservation — only shown when booked, no footer */}
-          {bookedUser && (
-            <div className="pt-2 space-y-3">
-              <div className="h-px bg-gray-200 dark:bg-white/10" />
-              <button
-                onClick={handleCancel}
-                disabled={cancelLoading}
-                className="w-full py-4 rounded-xl font-semibold border border-red-300 dark:border-red-900/50 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 disabled:opacity-40"
-              >
-                {cancelLoading ? "Cancelling…" : "Cancel my reservation"}
-              </button>
-            </div>
-          )}
         </div>
       </div>
 
-      {/* Sticky bottom CTA — hidden when user is already booked */}
-      {!bookedUser && (
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-[var(--color-secondary-background)] border-t border-gray-200 dark:border-white/10">
-        {!gathering.isPublic ? (
-          <p className="w-full py-3 text-center text-gray-500 dark:text-gray-400 text-sm">
-            This is a private event.
-          </p>
-        ) : isFull ? (
-          <button
-            disabled
-            className="w-full py-4 rounded-xl font-semibold text-white bg-[var(--color-primary)] opacity-40 cursor-not-allowed"
-          >
-            Event is Full
-          </button>
-        ) : storedUser ? (
-          <div className="space-y-2">
-            <button
-              onClick={handleAutoBook}
-              disabled={autoBookLoading}
-              className="w-full py-4 rounded-xl font-semibold text-white bg-[var(--color-primary)] disabled:opacity-50"
-            >
-              {autoBookLoading ? "Booking…" : `Book as ${storedUser.firstName} →`}
-            </button>
-            <button
-              onClick={handleForgetUser}
-              className="w-full py-1 text-sm text-center text-gray-500 dark:text-gray-500"
-            >
-              Not you?
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={() => setShowModal(true)}
-            className="w-full py-4 rounded-xl font-semibold text-white bg-[var(--color-primary)]"
-          >
-            Book a Seat
-          </button>
-        )}
-      </div>
-      )}
 
       {/* Booking modal */}
       {showModal && (

@@ -11,6 +11,8 @@ import {
   runTransaction,
   orderBy,
   limit,
+  arrayUnion,
+  arrayRemove,
 } from "firebase/firestore";
 import { db, auth } from "../firebase/config";
 import { Gathering, gatheringFromFirestore } from "../models/Gathering";
@@ -116,7 +118,7 @@ export class FirestoreService {
           const data = { id: document.id, ...document.data() };
           const gathering = gatheringFromFirestore(data as any);
           
-          if (gathering.attendeeUserIds.includes(userId)) {
+          if ((gathering.attendees || []).some((a) => a.id === userId)) {
             userGatherings.push(gathering);
           }
         } catch (error) {
@@ -141,7 +143,7 @@ export class FirestoreService {
           const data = { id: document.id, ...document.data() };
           const gathering = gatheringFromFirestore(data as any);
           
-          if (gathering.start <= new Date() && gathering.attendeeUserIds.includes(userId)) {
+          if (gathering.start <= new Date() && (gathering.attendees || []).some((a) => a.id === userId)) {
             userGatherings.push(gathering);
           }
         } catch (error) {
@@ -169,27 +171,41 @@ export class FirestoreService {
     if (!db) {
       throw new Error("Firebase is not initialized. Please check your environment variables.");
     }
+
+    const userDoc = await getDoc(doc(db, "users", userId));
+    if (!userDoc.exists()) throw new Error("User not found");
+    const userData = userDoc.data();
+
+    const attendeeEntry = {
+      id: userId,
+      firstName: userData.firstName || "",
+      lastName: userData.lastName || "",
+      phoneNumber: userData.phoneNumber || "",
+    };
+
     const gatheringRef = doc(db, "gatherings", gatheringId);
-    
+
     await runTransaction(db, async (transaction) => {
       const gatheringDoc = await transaction.get(gatheringRef);
       if (!gatheringDoc.exists()) {
         throw new Error("Gathering not found");
       }
-      
+
       const data = gatheringDoc.data();
       const gathering = gatheringFromFirestore({ id: gatheringDoc.id, ...data } as any);
-      
-      if (gathering.attendeeUserIds.includes(userId)) {
+
+      if ((gathering.attendees || []).some((a) => a.id === userId)) {
         throw new Error("Already registered");
       }
-      
-      if (gathering.maxAttendees && gathering.attendeeUserIds.length >= gathering.maxAttendees) {
+
+      if (gathering.maxAttendees && (gathering.attendees || []).length >= gathering.maxAttendees) {
         throw new Error("Gathering is full");
       }
-      
-      const updatedAttendees = [...gathering.attendeeUserIds, userId];
-      transaction.update(gatheringRef, { attendeeUserIds: updatedAttendees });
+
+      transaction.update(gatheringRef, {
+        attendeeUserIds: arrayUnion(userId),
+        attendees: arrayUnion(attendeeEntry),
+      });
     });
   }
 
@@ -199,16 +215,19 @@ export class FirestoreService {
     }
     const gatheringRef = doc(db, "gatherings", gatheringId);
     const gatheringDoc = await getDoc(gatheringRef);
-    
+
     if (!gatheringDoc.exists()) {
       throw new Error("Gathering not found");
     }
-    
+
     const data = gatheringDoc.data();
     const gathering = gatheringFromFirestore({ id: gatheringDoc.id, ...data } as any);
-    const updatedAttendees = gathering.attendeeUserIds.filter((id) => id !== userId);
-    
-    await updateDoc(gatheringRef, { attendeeUserIds: updatedAttendees });
+    const attendeeEntry = (gathering.attendees || []).find((a) => a.id === userId);
+
+    await updateDoc(gatheringRef, {
+      attendeeUserIds: arrayRemove(userId),
+      ...(attendeeEntry ? { attendees: arrayRemove(attendeeEntry) } : {}),
+    });
   }
 
   async fetchUsers(ids: string[]): Promise<User[]> {
@@ -342,15 +361,15 @@ export class FirestoreService {
       const data = gatheringDoc.data();
       const gathering = gatheringFromFirestore({ id: gatheringDoc.id, ...data } as any);
 
-      if (gathering.attendeeUserIds.includes(user.id!)) {
+      if ((gathering.attendees || []).some((a) => a.id === user.id!)) {
         throw new Error("Already registered");
       }
 
-      if (gathering.maxAttendees && gathering.attendeeUserIds.length >= gathering.maxAttendees) {
+      if (gathering.maxAttendees && (gathering.attendees || []).length >= gathering.maxAttendees) {
         throw new Error("Gathering is full");
       }
 
-      const updatedAttendeeIds = [...gathering.attendeeUserIds, user.id!];
+      const updatedAttendeeIds = [...(gathering.attendees || []).map((a) => a.id), user.id!];
       const updatedAttendees = [
         ...(gathering.attendees || []),
         {

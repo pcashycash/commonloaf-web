@@ -50,7 +50,7 @@
 }
 
 body {
-  background: var(--color-background);
+  background: var(--color-secondary-background);
   color: var(--color-text);
   font-family: system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;

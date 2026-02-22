@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
         title: g.title,
         start: g.start.toISOString(),
         imageURL: g.imageURL || null,
-        attendeeCount: g.attendeeUserIds.length,
+        attendeeCount: (g.attendees || []).length,
         maxAttendees: g.maxAttendees || null,
         neighborhood: g.location?.neighborhood || null,
       };

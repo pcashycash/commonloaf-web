@@ -34,7 +34,6 @@ export async function GET(
     const gathering = gatheringFromFirestore(data as any);
     
     // Convert to JSON-serializable format.
-    // Phone numbers are stripped from attendees before sending to clients.
     const gatheringJSON = {
       id: gathering.id,
       title: gathering.title,
@@ -49,6 +48,7 @@ export async function GET(
         id: a.id,
         firstName: a.firstName,
         lastName: a.lastName,
+        phoneNumber: a.phoneNumber || null,
       })),
       food: (gathering.food || []).sort((a, b) => a.order - b.order),
       games: (gathering.games || []).sort((a, b) => a.order - b.order),
