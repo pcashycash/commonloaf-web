@@ -238,13 +238,13 @@ export default function GatheringSharePage({ gathering, gatheringId, hostFirstNa
           <div className="flex items-center gap-3 text-gray-600 dark:text-gray-300">
             {/* Dynamic calendar badge */}
             <div className="flex flex-col items-center w-[25px] rounded overflow-hidden border border-gray-300 dark:border-white/15 shrink-0">
-              <div className="w-full bg-red-600 flex items-center justify-center py-px">
-                <span className="text-[5px] font-bold text-white tracking-wider leading-none">
+              <div className="w-full bg-red-600 flex items-center justify-center py-0.5">
+                <span className="text-[6px] font-bold text-white tracking-wider leading-none">
                   {startDate.toLocaleDateString("en-US", { month: "short" }).toUpperCase()}
                 </span>
               </div>
-              <div className="bg-gray-100 dark:bg-white/10 w-full flex items-center justify-center py-px">
-                <span className="text-[7px] font-bold text-gray-900 dark:text-white leading-none">
+              <div className="bg-gray-100 dark:bg-white/10 w-full flex items-center justify-center py-0.5">
+                <span className="text-[8px] font-bold text-gray-900 dark:text-white leading-none">
                   {startDate.getDate()}
                 </span>
               </div>
