@@ -41,12 +41,28 @@ export default function GatheringSharePage({ gathering, gatheringId, hostFirstNa
   const [bookedUser, setBookedUser] = useState<User | null>(null);
   const [localAttendeeIds, setLocalAttendeeIds] = useState<string[]>(gathering.attendeeUserIds);
   const [localAttendees, setLocalAttendees] = useState<EmbeddedAttendee[]>(gathering.attendees ?? []);
+  const [localRecipes, setLocalRecipes] = useState<Record<string, RecipeInfo>>(recipes);
   const [showSuccess, setShowSuccess] = useState(false);
   const [successFading, setSuccessFading] = useState(false);
   const [storedUser, setStoredUser] = useState<User | null>(null);
   const [autoBookLoading, setAutoBookLoading] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
   const [showGoodbye, setShowGoodbye] = useState(false);
+
+  // On mount — fetch recipes client-side (server-side fetch may be blocked by Firestore auth rules)
+  useEffect(() => {
+    const ids = (gathering.food || [])
+      .map((f) => f.recipeId)
+      .filter((id): id is string => !!id);
+    if (ids.length === 0) return;
+    firestoreService.fetchRecipes(ids).then((fetched) => {
+      const map: Record<string, RecipeInfo> = {};
+      for (const r of fetched) {
+        if (r.id) map[r.id] = { name: r.name, description: r.description, imageURL: r.imageURL };
+      }
+      if (Object.keys(map).length > 0) setLocalRecipes(map);
+    }).catch(() => {});
+  }, []);
 
   // On mount — check localStorage for a returning user
   useEffect(() => {
@@ -162,7 +178,7 @@ export default function GatheringSharePage({ gathering, gatheringId, hostFirstNa
     <div className="min-h-screen flex flex-col">
 
       {/* Header */}
-      <div className="sticky top-0 z-30 flex items-center gap-2 px-4 py-3 bg-white/80 dark:bg-black/80 backdrop-blur-sm border-b border-gray-200 dark:border-white/10">
+      <div className="sticky top-0 z-30 flex items-center gap-2 px-4 py-3 bg-[var(--color-secondary-background)] border-b border-gray-200 dark:border-white/10">
         {/* See Other Events */}
         <button
           onClick={() => router.push("/gatherings")}
@@ -190,7 +206,7 @@ export default function GatheringSharePage({ gathering, gatheringId, hostFirstNa
               disabled={cancelLoading}
               className="px-3 py-1.5 rounded-lg text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 disabled:opacity-40 transition-colors"
             >
-              {cancelLoading ? "Cancelling…" : "Cancel Reservation"}
+              {cancelLoading ? "Leaving…" : "Leave"}
             </button>
           ) : storedUser ? (
             <button
@@ -198,7 +214,7 @@ export default function GatheringSharePage({ gathering, gatheringId, hostFirstNa
               disabled={autoBookLoading}
               className="px-3 py-1.5 rounded-lg text-sm font-medium text-white bg-[var(--color-primary)] disabled:opacity-50 transition-opacity"
             >
-              {autoBookLoading ? "Booking…" : "Book a Seat"}
+              {autoBookLoading ? "Joining…" : "Join"}
             </button>
           ) : (
             <button
@@ -221,14 +237,14 @@ export default function GatheringSharePage({ gathering, gatheringId, hostFirstNa
           {/* Date */}
           <div className="flex items-center gap-3 text-gray-600 dark:text-gray-300">
             {/* Dynamic calendar badge */}
-            <div className="flex flex-col items-center w-5 rounded overflow-hidden border border-gray-300 dark:border-white/15 shrink-0">
-              <div className="w-full bg-red-600 text-center py-px">
+            <div className="flex flex-col items-center w-[25px] rounded overflow-hidden border border-gray-300 dark:border-white/15 shrink-0">
+              <div className="w-full bg-red-600 text-center">
                 <span className="text-[5px] font-bold text-white tracking-wider">
                   {startDate.toLocaleDateString("en-US", { month: "short" }).toUpperCase()}
                 </span>
               </div>
-              <div className="bg-gray-100 dark:bg-white/10 w-full text-center py-0.5">
-                <span className="text-[9px] font-bold text-gray-900 dark:text-white leading-none">
+              <div className="bg-gray-100 dark:bg-white/10 w-full text-center">
+                <span className="text-[7px] font-bold text-gray-900 dark:text-white leading-none">
                   {startDate.getDate()}
                 </span>
               </div>
@@ -308,7 +324,7 @@ export default function GatheringSharePage({ gathering, gatheringId, hostFirstNa
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Menu</h2>
               <div className="space-y-5">
                 {sortedFood.map((item, i) => {
-                  const recipe = recipes[item.recipeId];
+                  const recipe = localRecipes[item.recipeId];
                   return (
                     <div key={i} className="space-y-2">
                       {recipe?.imageURL && (
