@@ -49,7 +49,7 @@ export default function GatheringSharePage({ gathering, gatheringId, hostFirstNa
   const [cancelLoading, setCancelLoading] = useState(false);
   const [showGoodbye, setShowGoodbye] = useState(false);
 
-  // On mount — fetch recipes client-side (server-side fetch may be blocked by Firestore auth rules)
+  // On mount — fetch recipes client-side
   useEffect(() => {
     const ids = (gathering.food || [])
       .map((f) => f.recipeId)
