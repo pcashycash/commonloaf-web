@@ -1,0 +1,14 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["4LT579Y6JX.Cashner.TheCommonLoaf"],
+        "components": [
+          {
+            "/": "/gathering/*"
+          }
+        ]
+      }
+    ]
+  }
+}
